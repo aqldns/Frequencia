@@ -4,6 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestão de Aprisco - Frequência & Membros</title>
+
+  <!-- ==================================================================== -->
+  <!-- 🖼️ IMAGEM DA ABA DO NAVEGADOR (ÍCONE / FAVICON)                     -->
+  <!-- Para trocar a foto da aba, basta alterar o caminho no href abaixo:   -->
+  <!-- Exemplo 1: href="minha_foto.png"  (foto salva nesta mesma pasta)     -->
+  <!-- Exemplo 2: href="minha_foto.jpg" ou href="icone.ico"                 -->
+  <!-- Exemplo 3: href="https://exemplo.com/foto.png" (link da internet)    -->
+  <!-- ==================================================================== -->
+  <link id="iconeAbaSite" rel="icon" type="image/x-icon" href="foto.png">
+  <link rel="apple-touch-icon" href="icone.svg">
+
   <!-- Tailwind CSS via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome Icons -->
@@ -94,177 +105,167 @@
     <!-- ========================================== -->
     <!-- ABA 1: FREQUÊNCIA (MESES + GERAL)          -->
     <!-- ========================================== -->
-    <section id="sectionFrequencia" class="space-y-6">
-
-      <!-- Seletor dos Meses e Aba Geral -->
-      <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-200">
-        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="0">Jan</button>
-          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="1">Fev</button>
-          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="2">Mar</button>
-          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="3">Abr</button>
-          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="4">Mai</button>
-          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="5">Jun</button>
-          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="6">Jul</button>
-          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="7">Ago</button>
-          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="8">Set</button>
-          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="9">Out</button>
-          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="10">Nov</button>
-          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="11">Dez</button>
-          
-          <div class="h-6 w-[1px] bg-slate-300 mx-1"></div>
-          
-          <button id="pillGeral" class="month-pill px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition whitespace-nowrap flex items-center gap-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100" data-month="geral">
-            <i class="fa-solid fa-chart-pie"></i>
-            <span>GERAL (Consolidado)</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Título do Mês Selecionado & Ações de Data -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 id="currentPeriodTitle" class="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <span>Mês de Janeiro</span>
-            <span id="periodBadge" class="text-xs bg-indigo-100 text-indigo-700 font-semibold px-2.5 py-1 rounded-full">Mensal</span>
-          </h2>
-          <p id="currentPeriodSubtitle" class="text-xs sm:text-sm text-slate-500 mt-0.5">Registre presenças por data e acompanhe o aproveitamento da equipe</p>
-        </div>
-
-        <!-- Ações do Mês (só visível nos meses individuais) -->
-        <div id="monthActionButtons" class="flex items-center flex-wrap gap-2">
-          <button id="btnAddDateModal" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-semibold text-xs sm:text-sm px-4 py-2 rounded-xl transition shadow flex items-center gap-2">
-            <i class="fa-solid fa-calendar-plus"></i>
-            <span>Nova Data / Programação</span>
-          </button>
-          <button id="btnFastFillPresent" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-medium text-xs sm:text-sm px-3.5 py-2 rounded-xl transition shadow flex items-center gap-1.5" title="Preencher presentes rapidamente">
-            <i class="fa-solid fa-check-double"></i>
-            <span>Todos Presentes</span>
-          </button>
-        </div>
-      </div>
+    <section id="sectionFrequencia" class="space-y-3.5">
 
       <!-- ============================================================== -->
-      <!-- PAINEL DE MÉTRICAS / CATEGORIAS (MÊS OU GERAL)                -->
+      <!-- 1. META DO APRISCO E MÉTRICAS (EM CIMA DOS MESES)              -->
       <!-- ============================================================== -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 
-        <!-- CARD 1: CLASSIFICAÇÃO DO APRISCO (DESTAQUE) -->
-        <div id="cardClassificacaoAprisco" class="bg-gradient-to-br from-indigo-900 via-indigo-800 to-purple-900 text-white rounded-2xl p-5 shadow-md flex flex-col justify-between relative overflow-hidden">
-          <div class="absolute -right-4 -bottom-4 w-28 h-28 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+        <!-- CARD 1: META / CLASSIFICAÇÃO DO APRISCO -->
+        <div id="cardClassificacaoAprisco" class="bg-gradient-to-br from-indigo-900 via-indigo-800 to-purple-900 text-white rounded-xl p-4 shadow-sm flex flex-col justify-between relative overflow-hidden">
           <div>
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-semibold uppercase tracking-wider text-indigo-200 flex items-center gap-1.5">
-                <i class="fa-solid fa-trophy text-amber-300"></i> Classificação do Aprisco
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-indigo-200 flex items-center gap-1.5">
+                <i class="fa-solid fa-trophy text-amber-300"></i> Meta do Aprisco
               </span>
               <span id="tagClassifRegra" class="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-medium">Meta</span>
             </div>
-            <div class="flex items-baseline gap-2 mt-1">
-              <h3 id="statApriscoClassificacao" class="text-3xl font-extrabold tracking-tight text-amber-300">Ótimo</h3>
+            <div class="flex items-baseline gap-2 mt-0.5">
+              <h3 id="statApriscoClassificacao" class="text-2xl font-black tracking-tight text-amber-300">Ótimo</h3>
             </div>
-            <p id="statApriscoClassificacaoDesc" class="text-xs text-indigo-100 mt-2 leading-relaxed">
-              Frequentes (Ótimos + Bons) atingiram mais de 80% dos membros.
+            <p id="statApriscoClassificacaoDesc" class="text-xs text-indigo-100 mt-1 leading-snug line-clamp-2">
+              Frequentes atingiram a meta do grupo.
             </p>
           </div>
 
-          <div class="mt-4 pt-3 border-t border-white/15 flex items-center justify-between text-xs">
+          <div class="mt-3 pt-2 border-t border-white/15 flex items-center justify-between text-xs">
             <span class="text-indigo-200">Frequentes / Membros:</span>
             <span id="statApriscoFrequentesVsMembros" class="font-bold text-white">0 de 0</span>
           </div>
         </div>
 
-        <!-- CARD 2: FREQUENTES & PORCENTAGEM -->
-        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between">
+        <!-- CARD 2: FREQUENTES & % -->
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between">
           <div>
-            <div class="flex items-center justify-between text-slate-500 mb-2">
-              <span class="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 text-slate-600">
-                <i class="fa-solid fa-user-check text-emerald-500"></i> Frequentes & Taxa
+            <div class="flex items-center justify-between text-slate-500 mb-1">
+              <span class="text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5 text-slate-600">
+                <i class="fa-solid fa-user-check text-emerald-500"></i> Frequentes
               </span>
               <span id="statPorcentagemBadge" class="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">0%</span>
             </div>
-            <div class="flex items-baseline gap-2 mt-1">
-              <span id="statQuantidadeFrequentes" class="text-3xl font-extrabold text-slate-800">0</span>
-              <span class="text-xs text-slate-500 font-medium">pessoas frequentes</span>
+            <div class="flex items-baseline gap-1.5 mt-0.5">
+              <span id="statQuantidadeFrequentes" class="text-2xl font-black text-slate-800">0</span>
+              <span class="text-xs text-slate-500 font-medium">membros (Ótimo + Bom)</span>
             </div>
-            <p class="text-xs text-slate-500 mt-2">
-              Soma dos membros classificados como <strong>Ótimo</strong> e <strong>Bom</strong>.
-            </p>
           </div>
 
-          <!-- Barra de progresso da porcentagem -->
-          <div class="mt-4 pt-3 border-t border-slate-100">
-            <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-              <div id="statProgressBarFrequentes" class="bg-emerald-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+          <div class="mt-3 pt-2 border-t border-slate-100">
+            <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+              <div id="statProgressBarFrequentes" class="bg-emerald-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
             </div>
           </div>
         </div>
 
-        <!-- CARD 3: PROGRAMAÇÕES & MÉDIA DE FREQUÊNCIA -->
-        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between">
+        <!-- CARD 3: PROGRAMAÇÕES & MÉDIA -->
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between">
           <div>
-            <div class="flex items-center justify-between text-slate-500 mb-2">
-              <span class="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 text-slate-600">
+            <div class="flex items-center justify-between text-slate-500 mb-1">
+              <span class="text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5 text-slate-600">
                 <i class="fa-solid fa-calendar-days text-indigo-500"></i> Programações
               </span>
-              <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
-                Média: <span id="statMediaFrequencia">0</span>
+              <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                Média: <strong id="statMediaFrequencia">0</strong>
               </span>
             </div>
-            <div class="flex items-baseline gap-2 mt-1">
-              <span id="statQuantidadeProgramacoes" class="text-3xl font-extrabold text-slate-800">0</span>
-              <span class="text-xs text-slate-500 font-medium">encontros realizados</span>
+            <div class="flex items-baseline gap-1.5 mt-0.5">
+              <span id="statQuantidadeProgramacoes" class="text-2xl font-black text-slate-800">0</span>
+              <span class="text-xs text-slate-500 font-medium">encontros</span>
             </div>
-            <p class="text-xs text-slate-500 mt-2">
-              Média de frequência: <strong id="statMediaPresencaTexto">0 membros</strong> presentes por programação.
+            <p class="text-[11px] text-slate-400 mt-1">
+              Média: <strong id="statMediaPresencaTexto" class="text-slate-600">0 pessoas</strong> por encontro.
             </p>
           </div>
 
-          <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
-            <span>Membros cadastrados:</span>
+          <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>Membros ativos:</span>
             <span id="statQuantidadeMembros" class="font-bold text-slate-800">0</span>
           </div>
         </div>
 
         <!-- CARD 4: DISTRIBUIÇÃO DAS CLASSIFICAÇÕES -->
-        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between">
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between">
           <div>
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-600 flex items-center gap-1.5 mb-3">
-              <i class="fa-solid fa-chart-simple text-purple-500"></i> Classificação dos Membros
-            </span>
-            <div class="grid grid-cols-2 gap-2 text-xs">
-              <div class="flex items-center justify-between p-2 rounded-xl bg-emerald-50 border border-emerald-100">
-                <span class="font-medium text-emerald-800 flex items-center gap-1">
-                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Ótimos
-                </span>
-                <span id="statCountOtimos" class="font-bold text-emerald-900 text-sm">0</span>
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                <i class="fa-solid fa-chart-simple text-purple-500"></i> Membros
+              </span>
+              <span id="statTotaisPresencaFalta" class="text-[10px] text-slate-400 font-medium">P: 0 | FJ: 0 | F: 0</span>
+            </div>
+            <div class="grid grid-cols-4 gap-1 text-center">
+              <div class="p-1 rounded-lg bg-emerald-50 border border-emerald-100">
+                <span class="text-[10px] font-medium text-emerald-800 block">Ótimo</span>
+                <span id="statCountOtimos" class="font-bold text-emerald-900 text-xs">0</span>
               </div>
-              <div class="flex items-center justify-between p-2 rounded-xl bg-blue-50 border border-blue-100">
-                <span class="font-medium text-blue-800 flex items-center gap-1">
-                  <span class="w-2 h-2 rounded-full bg-blue-500"></span> Bons
-                </span>
-                <span id="statCountBons" class="font-bold text-blue-900 text-sm">0</span>
+              <div class="p-1 rounded-lg bg-blue-50 border border-blue-100">
+                <span class="text-[10px] font-medium text-blue-800 block">Bom</span>
+                <span id="statCountBons" class="font-bold text-blue-900 text-xs">0</span>
               </div>
-              <div class="flex items-center justify-between p-2 rounded-xl bg-amber-50 border border-amber-100">
-                <span class="font-medium text-amber-800 flex items-center gap-1">
-                  <span class="w-2 h-2 rounded-full bg-amber-500"></span> Regulares
-                </span>
-                <span id="statCountRegulares" class="font-bold text-amber-900 text-sm">0</span>
+              <div class="p-1 rounded-lg bg-amber-50 border border-amber-100">
+                <span class="text-[10px] font-medium text-amber-800 block">Reg.</span>
+                <span id="statCountRegulares" class="font-bold text-amber-900 text-xs">0</span>
               </div>
-              <div class="flex items-center justify-between p-2 rounded-xl bg-rose-50 border border-rose-100">
-                <span class="font-medium text-rose-800 flex items-center gap-1">
-                  <span class="w-2 h-2 rounded-full bg-rose-500"></span> Ruins
-                </span>
-                <span id="statCountRuins" class="font-bold text-rose-900 text-sm">0</span>
+              <div class="p-1 rounded-lg bg-rose-50 border border-rose-100">
+                <span class="text-[10px] font-medium text-rose-800 block">Ruim</span>
+                <span id="statCountRuins" class="font-bold text-rose-900 text-xs">0</span>
               </div>
             </div>
           </div>
 
-          <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Presenças / Faltas:</span>
-            <span id="statTotaisPresencaFalta" class="font-medium text-slate-700">P: 0 | FJ: 0 | F: 0</span>
+          <div class="mt-3 pt-2 border-t border-slate-100 text-[11px] text-slate-400 text-center">
+            Classificação individual no período
           </div>
         </div>
 
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- 2. SELETOR DE MESES & GERAL (LOGO ACIMA DA FREQUÊNCIA)         -->
+      <!-- ============================================================== -->
+      <div class="bg-white p-2.5 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+        <!-- Pílulas dos Meses e Geral -->
+        <div class="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 scrollbar-thin">
+          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="0">Jan</button>
+          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="1">Fev</button>
+          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="2">Mar</button>
+          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="3">Abr</button>
+          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="4">Mai</button>
+          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="5">Jun</button>
+          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="6">Jul</button>
+          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="7">Ago</button>
+          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="8">Set</button>
+          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="9">Out</button>
+          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="10">Nov</button>
+          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="11">Dez</button>
+          
+          <div class="h-5 w-[1px] bg-slate-200 mx-1"></div>
+          
+          <button id="pillGeral" class="month-pill px-3.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100" data-month="geral">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span>GERAL</span>
+          </button>
+        </div>
+
+        <!-- Título do Período e Botões de Ação -->
+        <div class="flex items-center justify-between md:justify-end gap-2.5 shrink-0">
+          <div class="flex items-center gap-1.5">
+            <h2 id="currentPeriodTitle" class="text-xs font-bold text-slate-800 flex items-center gap-1">
+              <span>Mês de Janeiro</span>
+            </h2>
+            <span id="currentPeriodSubtitle" class="hidden"></span>
+          </div>
+
+          <div id="monthActionButtons" class="flex items-center gap-1.5">
+            <button id="btnAddDateModal" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-semibold text-xs px-3 py-1.5 rounded-lg transition shadow-sm flex items-center gap-1.5">
+              <i class="fa-solid fa-calendar-plus text-[11px]"></i>
+              <span>+ Programação</span>
+            </button>
+            <button id="btnFastFillPresent" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-medium text-xs px-2.5 py-1.5 rounded-lg transition shadow-sm flex items-center gap-1" title="Marcar todos os membros ativos como Presente">
+              <i class="fa-solid fa-check-double text-[11px]"></i>
+              <span class="hidden sm:inline">Todos Presentes</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- ============================================================== -->

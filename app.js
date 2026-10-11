@@ -3,6 +3,24 @@
  * Desenvolvido para controle fácil, intuitivo e sem necessidade de mexer no código.
  */
 
+function aplicarIconeAba() {
+  if (typeof CONFIG_IMAGEM_ABA !== 'undefined' && CONFIG_IMAGEM_ABA) {
+    let link = document.getElementById('iconeAbaSite');
+    if (!link) {
+      link = document.createElement('link');
+      link.id = 'iconeAbaSite';
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = CONFIG_IMAGEM_ABA;
+
+    let appleLink = document.querySelector("link[rel='apple-touch-icon']");
+    if (appleLink) {
+      appleLink.href = CONFIG_IMAGEM_ABA;
+    }
+  }
+}
+
 // Nomes dos meses em português
 const MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -1410,6 +1428,7 @@ function showToast(mensagem, tipo = 'sucesso') {
 // ====================================================================
 
 window.addEventListener('DOMContentLoaded', () => {
+  aplicarIconeAba();
   loadState();
   renderApp();
 });
