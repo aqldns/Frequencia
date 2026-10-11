@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestão de Aprisco - Frequência & Membros</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+  <!-- Header Superior -->
+  <header class="bg-gradient-to-r from-indigo-700 via-indigo-800 to-purple-800 text-white shadow-lg sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-inner">
+          <i class="fa-solid fa-users-rays text-xl text-amber-300"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 id="apriscoNameDisplay" class="font-bold text-lg sm:text-xl tracking-tight">Gestão do Aprisco</h1>
+            <button id="btnEditApriscoName" title="Renomear Aprisco" class="text-xs bg-white/15 hover:bg-white/25 px-2 py-0.5 rounded transition">
+              <i class="fa-solid fa-pen text-[10px]"></i>
+            </button>
+          </div>
+          <p class="text-xs text-indigo-200">Controle de Frequência, Membros & Pontuação</p>
+        </div>
+      </div>
+
+      <!-- Ações rápidas no Header: Ano, Backup, Exportar -->
+      <div class="flex items-center flex-wrap gap-2.5">
+        <div class="flex items-center bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/15 text-sm">
+          <label for="anoSelect" class="text-xs text-indigo-200 mr-2 font-medium">Ano:</label>
+          <select id="anoSelect" class="bg-transparent text-white font-semibold outline-none cursor-pointer">
+            <option value="2024" class="text-slate-800">2024</option>
+            <option value="2025" class="text-slate-800">2025</option>
+            <option value="2026" selected class="text-slate-800">2026</option>
+            <option value="2027" class="text-slate-800">2027</option>
+          </select>
+        </div>
+
+        <button id="btnExportData" title="Fazer Backup dos Dados (Baixar arquivo JSON)" class="bg-white/10 hover:bg-white/20 active:scale-95 text-xs font-medium px-3 py-2 rounded-lg border border-white/15 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-download"></i>
+          <span class="hidden sm:inline">Backup</span>
+        </button>
+
+        <label for="btnImportFile" title="Restaurar dados de um Backup" class="bg-white/10 hover:bg-white/20 active:scale-95 text-xs font-medium px-3 py-2 rounded-lg border border-white/15 transition flex items-center gap-1.5 cursor-pointer">
+          <i class="fa-solid fa-upload"></i>
+          <span class="hidden sm:inline">Restaurar</span>
+          <input type="file" id="btnImportFile" accept=".json" class="hidden">
+        </label>
+
+        <button id="btnPrintReport" title="Imprimir Relatório" class="bg-amber-400 hover:bg-amber-300 text-indigo-950 font-semibold text-xs px-3.5 py-2 rounded-lg transition shadow flex items-center gap-1.5">
+          <i class="fa-solid fa-print"></i>
+          <span>Imprimir</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navegação Principal (Abas) -->
+  <nav class="bg-white border-b border-slate-200 shadow-sm sticky top-[69px] z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex space-x-2 sm:space-x-4 overflow-x-auto py-2.5">
+        <button id="tabNavFrequencia" class="tab-main-btn active flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition" onclick="switchMainTab('frequencia')">
+          <i class="fa-regular fa-calendar-check text-base"></i>
+          <span>Frequência dos Meses</span>
+        </button>
+
+        <button id="tabNavMembros" class="tab-main-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50" onclick="switchMainTab('membros')">
+          <i class="fa-solid fa-users text-base"></i>
+          <span>Gerenciar Membros</span>
+          <span id="badgeTotalMembrosNav" class="ml-1 bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+        </button>
+
+        <button id="tabNavRegras" class="tab-main-btn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50" onclick="switchMainTab('regras')">
+          <i class="fa-solid fa-sliders text-base"></i>
+          <span>Regras de Classificação</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Conteúdo Principal -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+
+    <!-- ========================================== -->
+    <!-- ABA 1: FREQUÊNCIA (MESES + GERAL)          -->
+    <!-- ========================================== -->
+    <section id="sectionFrequencia" class="space-y-6">
+
+      <!-- Seletor dos Meses e Aba Geral -->
+      <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-200">
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="0">Jan</button>
+          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="1">Fev</button>
+          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="2">Mar</button>
+          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="3">Abr</button>
+          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="4">Mai</button>
+          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="5">Jun</button>
+          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="6">Jul</button>
+          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="7">Ago</button>
+          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="8">Set</button>
+          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="9">Out</button>
+          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="10">Nov</button>
+          <button class="month-pill px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap" data-month="11">Dez</button>
+          
+          <div class="h-6 w-[1px] bg-slate-300 mx-1"></div>
+          
+          <button id="pillGeral" class="month-pill px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition whitespace-nowrap flex items-center gap-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100" data-month="geral">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span>GERAL (Consolidado)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Título do Mês Selecionado & Ações de Data -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 id="currentPeriodTitle" class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <span>Mês de Janeiro</span>
+            <span id="periodBadge" class="text-xs bg-indigo-100 text-indigo-700 font-semibold px-2.5 py-1 rounded-full">Mensal</span>
+          </h2>
+          <p id="currentPeriodSubtitle" class="text-xs sm:text-sm text-slate-500 mt-0.5">Registre presenças por data e acompanhe o aproveitamento da equipe</p>
+        </div>
+
+        <!-- Ações do Mês (só visível nos meses individuais) -->
+        <div id="monthActionButtons" class="flex items-center flex-wrap gap-2">
+          <button id="btnAddDateModal" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-semibold text-xs sm:text-sm px-4 py-2 rounded-xl transition shadow flex items-center gap-2">
+            <i class="fa-solid fa-calendar-plus"></i>
+            <span>Nova Data / Programação</span>
+          </button>
+          <button id="btnFastFillPresent" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-medium text-xs sm:text-sm px-3.5 py-2 rounded-xl transition shadow flex items-center gap-1.5" title="Preencher presentes rapidamente">
+            <i class="fa-solid fa-check-double"></i>
+            <span>Todos Presentes</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- PAINEL DE MÉTRICAS / CATEGORIAS (MÊS OU GERAL)                -->
+      <!-- ============================================================== -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <!-- CARD 1: CLASSIFICAÇÃO DO APRISCO (DESTAQUE) -->
+        <div id="cardClassificacaoAprisco" class="bg-gradient-to-br from-indigo-900 via-indigo-800 to-purple-900 text-white rounded-2xl p-5 shadow-md flex flex-col justify-between relative overflow-hidden">
+          <div class="absolute -right-4 -bottom-4 w-28 h-28 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-indigo-200 flex items-center gap-1.5">
+                <i class="fa-solid fa-trophy text-amber-300"></i> Classificação do Aprisco
+              </span>
+              <span id="tagClassifRegra" class="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-medium">Meta</span>
+            </div>
+            <div class="flex items-baseline gap-2 mt-1">
+              <h3 id="statApriscoClassificacao" class="text-3xl font-extrabold tracking-tight text-amber-300">Ótimo</h3>
+            </div>
+            <p id="statApriscoClassificacaoDesc" class="text-xs text-indigo-100 mt-2 leading-relaxed">
+              Frequentes (Ótimos + Bons) atingiram mais de 80% dos membros.
+            </p>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-white/15 flex items-center justify-between text-xs">
+            <span class="text-indigo-200">Frequentes / Membros:</span>
+            <span id="statApriscoFrequentesVsMembros" class="font-bold text-white">0 de 0</span>
+          </div>
+        </div>
+
+        <!-- CARD 2: FREQUENTES & PORCENTAGEM -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-slate-500 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 text-slate-600">
+                <i class="fa-solid fa-user-check text-emerald-500"></i> Frequentes & Taxa
+              </span>
+              <span id="statPorcentagemBadge" class="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">0%</span>
+            </div>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span id="statQuantidadeFrequentes" class="text-3xl font-extrabold text-slate-800">0</span>
+              <span class="text-xs text-slate-500 font-medium">pessoas frequentes</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-2">
+              Soma dos membros classificados como <strong>Ótimo</strong> e <strong>Bom</strong>.
+            </p>
+          </div>
+
+          <!-- Barra de progresso da porcentagem -->
+          <div class="mt-4 pt-3 border-t border-slate-100">
+            <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+              <div id="statProgressBarFrequentes" class="bg-emerald-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 3: PROGRAMAÇÕES & MÉDIA DE FREQUÊNCIA -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between text-slate-500 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 text-slate-600">
+                <i class="fa-solid fa-calendar-days text-indigo-500"></i> Programações
+              </span>
+              <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                Média: <span id="statMediaFrequencia">0</span>
+              </span>
+            </div>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span id="statQuantidadeProgramacoes" class="text-3xl font-extrabold text-slate-800">0</span>
+              <span class="text-xs text-slate-500 font-medium">encontros realizados</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-2">
+              Média de frequência: <strong id="statMediaPresencaTexto">0 membros</strong> presentes por programação.
+            </p>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+            <span>Membros cadastrados:</span>
+            <span id="statQuantidadeMembros" class="font-bold text-slate-800">0</span>
+          </div>
+        </div>
+
+        <!-- CARD 4: DISTRIBUIÇÃO DAS CLASSIFICAÇÕES -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between">
+          <div>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-600 flex items-center gap-1.5 mb-3">
+              <i class="fa-solid fa-chart-simple text-purple-500"></i> Classificação dos Membros
+            </span>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div class="flex items-center justify-between p-2 rounded-xl bg-emerald-50 border border-emerald-100">
+                <span class="font-medium text-emerald-800 flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Ótimos
+                </span>
+                <span id="statCountOtimos" class="font-bold text-emerald-900 text-sm">0</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded-xl bg-blue-50 border border-blue-100">
+                <span class="font-medium text-blue-800 flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-blue-500"></span> Bons
+                </span>
+                <span id="statCountBons" class="font-bold text-blue-900 text-sm">0</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded-xl bg-amber-50 border border-amber-100">
+                <span class="font-medium text-amber-800 flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-amber-500"></span> Regulares
+                </span>
+                <span id="statCountRegulares" class="font-bold text-amber-900 text-sm">0</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded-xl bg-rose-50 border border-rose-100">
+                <span class="font-medium text-rose-800 flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-rose-500"></span> Ruins
+                </span>
+                <span id="statCountRuins" class="font-bold text-rose-900 text-sm">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Presenças / Faltas:</span>
+            <span id="statTotaisPresencaFalta" class="font-medium text-slate-700">P: 0 | FJ: 0 | F: 0</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- TABELA DINÂMICA DE CHAMADA / FREQUÊNCIA                        -->
+      <!-- ============================================================== -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-4 bg-slate-50/70 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <span class="font-bold text-slate-800 text-base flex items-center gap-2">
+              <i class="fa-solid fa-clipboard-user text-indigo-600"></i>
+              <span>Quadro de Frequência</span>
+            </span>
+            <span class="text-xs text-slate-500 hidden xl:inline">
+              (Clique nas letras: <strong class="text-emerald-700">P</strong> = Presente, <strong class="text-amber-700">FJ</strong> = Justificada, <strong class="text-rose-700">F</strong> = Falta)
+            </span>
+          </div>
+
+          <div class="flex items-center flex-wrap gap-2.5">
+            <!-- Seletor de Ordenação para os Meses e Geral -->
+            <div class="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200 shadow-sm text-xs">
+              <label for="selectOrdemFrequencia" class="font-semibold text-slate-600 flex items-center gap-1 whitespace-nowrap">
+                <i class="fa-solid fa-arrow-down-short-wide text-indigo-600"></i> Ordenar:
+              </label>
+              <select id="selectOrdemFrequencia" class="bg-transparent text-slate-700 font-semibold outline-none cursor-pointer pr-1">
+                <option value="nome_az">Ordem Alfabética (A &rarr; Z)</option>
+                <option value="nome_za">Ordem Alfabética (Z &rarr; A)</option>
+                <option value="pontos_desc">Maior Pontuação / Frequência</option>
+                <option value="pontos_asc">Menor Pontuação / Frequência</option>
+                <option value="criacao_antigos">Data de Cadastro (Mais Antigos)</option>
+                <option value="criacao_recentes">Data de Cadastro (Mais Recentes)</option>
+              </select>
+            </div>
+
+            <!-- Legenda Rápida -->
+            <div class="flex items-center gap-1.5 text-xs">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-semibold text-[11px]">
+                P (1.0 pt)
+              </span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-semibold text-[11px]">
+                FJ (0.5 pt)
+              </span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 font-semibold text-[11px]">
+                F (0 pt)
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Área Rolável da Tabela -->
+        <div class="overflow-x-auto min-h-[250px]">
+          <table id="tabelaFrequencia" class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr id="tabelaHeaderRow" class="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200 text-xs">
+                <!-- Cabeçalhos gerados dinamicamente via JavaScript -->
+              </tr>
+            </thead>
+            <tbody id="tabelaBody" class="divide-y divide-slate-100">
+              <!-- Linhas geradas dinamicamente via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mensagem de lista vazia de membros -->
+        <div id="emptyMembrosNotice" class="hidden p-10 text-center text-slate-400">
+          <i class="fa-solid fa-users text-4xl mb-3 text-slate-300"></i>
+          <p class="font-semibold text-slate-600">Nenhum membro cadastrado ainda</p>
+          <p class="text-xs text-slate-400 mt-1">Vá até a aba "Gerenciar Membros" para adicionar os participantes do Aprisco.</p>
+          <button onclick="switchMainTab('membros')" class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-4 py-2 rounded-lg font-semibold transition">
+            Cadastrar Primeiro Membro
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ========================================== -->
+    <!-- ABA 2: GERENCIAR MEMBROS                   -->
+    <!-- ========================================== -->
+    <section id="sectionMembros" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <span>Membros do Aprisco</span>
+            <span id="badgeContadorMembros" class="text-xs bg-indigo-100 text-indigo-700 font-semibold px-2.5 py-1 rounded-full">0 Membros</span>
+          </h2>
+          <p class="text-sm text-slate-500 mt-0.5">Adicione, edite e organize as pessoas do seu grupo sem mexer no código</p>
+        </div>
+
+        <button id="btnOpenModalNovoMembro" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition shadow flex items-center gap-2 self-start sm:self-auto">
+          <i class="fa-solid fa-user-plus"></i>
+          <span>Adicionar Membro</span>
+        </button>
+      </div>
+
+      <!-- Barra de Busca, Filtros e Ordenação de Membros -->
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-3 items-center justify-between">
+        <div class="relative w-full md:w-80">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+          <input type="text" id="inputBuscarMembro" placeholder="Buscar por nome, telefone ou função..." class="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+        </div>
+
+        <!-- Filtros de Status (Todos, Ativos, Desligados) -->
+        <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+          <button type="button" id="filterMembrosTodos" onclick="setFiltroStatusMembro('todos')" class="px-3 py-1.5 rounded-lg transition bg-white text-indigo-700 shadow-sm">
+            Todos (<span id="countMembrosTodos">0</span>)
+          </button>
+          <button type="button" id="filterMembrosAtivos" onclick="setFiltroStatusMembro('ativos')" class="px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900">
+            Ativos (<span id="countMembrosAtivos">0</span>)
+          </button>
+          <button type="button" id="filterMembrosInativos" onclick="setFiltroStatusMembro('inativos')" class="px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900">
+            Desligados (<span id="countMembrosInativos">0</span>)
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+          <label for="selectOrdemMembros" class="text-xs font-semibold text-slate-600 flex items-center gap-1.5 whitespace-nowrap">
+            <i class="fa-solid fa-arrow-down-a-z text-indigo-600"></i> Ordenar:
+          </label>
+          <select id="selectOrdemMembros" class="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition cursor-pointer">
+            <option value="nome_az">Ordem Alfabética (A &rarr; Z)</option>
+            <option value="nome_za">Ordem Alfabética (Z &rarr; A)</option>
+            <option value="criacao_antigos">Data de Cadastro (Mais Antigos)</option>
+            <option value="criacao_recentes">Data de Cadastro (Mais Recentes)</option>
+            <option value="funcao">Por Função / Cargo</option>
+            <option value="aniversario">Por Aniversariantes (Mês/Dia)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tabela / Lista de Membros -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200 text-xs">
+                <th class="py-3.5 px-4 cursor-pointer hover:bg-slate-200/80 transition" onclick="alternarOrdemCriacaoMembros()" title="Clique para ordenar por data de cadastro">
+                  <div class="flex items-center gap-1">
+                    <span>#</span>
+                    <i id="sortIconCriacao" class="fa-solid fa-sort text-slate-400 text-[10px]"></i>
+                  </div>
+                </th>
+                <th class="py-3.5 px-4 cursor-pointer hover:bg-slate-200/80 transition" onclick="alternarOrdemNomeMembros()" title="Clique para ordenar em ordem alfabética (A-Z / Z-A)">
+                  <div class="flex items-center gap-1.5">
+                    <span>Nome Completo</span>
+                    <i id="sortIconNome" class="fa-solid fa-arrow-down-a-z text-indigo-600 text-xs"></i>
+                  </div>
+                </th>
+                <th class="py-3.5 px-4">Telefone / WhatsApp</th>
+                <th class="py-3.5 px-4 cursor-pointer hover:bg-slate-200/80 transition" onclick="selecionarOrdemMembros('aniversario')" title="Ordenar por data de aniversário">
+                  <div class="flex items-center gap-1">
+                    <span>Data de Nascimento</span>
+                    <i class="fa-solid fa-cake-candles text-slate-400 text-[10px]"></i>
+                  </div>
+                </th>
+                <th class="py-3.5 px-4 cursor-pointer hover:bg-slate-200/80 transition" onclick="selecionarOrdemMembros('funcao')" title="Ordenar por função ou cargo">
+                  <div class="flex items-center gap-1">
+                    <span>Função / Observação</span>
+                    <i class="fa-solid fa-sort text-slate-400 text-[10px]"></i>
+                  </div>
+                </th>
+                <th class="py-3.5 px-4 text-center">Status</th>
+                <th class="py-3.5 px-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaMembrosBody" class="divide-y divide-slate-100">
+              <!-- Linhas de membros adicionados -->
+            </tbody>
+          </table>
+        </div>
+        <div id="membrosListEmpty" class="hidden p-12 text-center text-slate-400">
+          <i class="fa-solid fa-address-book text-4xl mb-3 text-slate-300"></i>
+          <p class="font-semibold text-slate-600">Nenhum membro encontrado</p>
+          <p class="text-xs text-slate-400 mt-1">Clique no botão "Adicionar Membro" acima para começar.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- ABA 3: REGRAS E CONFIGURAÇÃO               -->
+    <!-- ========================================== -->
+    <section id="sectionRegras" class="hidden space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-800">Regras e Fórmulas de Avaliação</h2>
+          <p class="text-sm text-slate-500 mt-0.5">Entenda e personalize como os pontos e classificações são calculados</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Card: Pontuação por Presença -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+              <i class="fa-solid fa-calculator"></i>
+            </div>
+            <div>
+              <h3 class="font-bold text-slate-800 text-base">Valores de Pontuação</h3>
+              <p class="text-xs text-slate-500">Peso de cada marcação no registro</p>
+            </div>
+          </div>
+          <div class="space-y-2.5 text-sm">
+            <div class="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-md bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-xs">P</span>
+                <span class="font-medium">Presença</span>
+              </div>
+              <span class="font-bold text-emerald-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200">1,0 ponto</span>
+            </div>
+            <div class="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-md bg-amber-100 text-amber-800 font-bold flex items-center justify-center text-xs">FJ</span>
+                <span class="font-medium">Falta Justificada</span>
+              </div>
+              <span class="font-bold text-amber-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200">0,5 ponto</span>
+            </div>
+            <div class="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-md bg-rose-100 text-rose-800 font-bold flex items-center justify-center text-xs">F</span>
+                <span class="font-medium">Falta</span>
+              </div>
+              <span class="font-bold text-rose-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200">0,0 ponto</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card: Classificação Individual -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+              <i class="fa-solid fa-award"></i>
+            </div>
+            <div>
+              <h3 class="font-bold text-slate-800 text-base">Classificação do Membro</h3>
+              <p class="text-xs text-slate-500">Baseada nos pontos em relação às programações</p>
+            </div>
+          </div>
+          <div class="space-y-2 text-xs">
+            <div class="p-3 rounded-xl bg-emerald-50/70 border border-emerald-100">
+              <div class="flex justify-between items-center font-bold text-emerald-900 mb-1">
+                <span>ÓTIMO</span>
+                <span>Pontos &gt; Programações &times; 0,8</span>
+              </div>
+              <p class="text-emerald-700">Quantidade de pontos estritamente maior que as programações multiplicadas por 0,8.</p>
+            </div>
+            <div class="p-3 rounded-xl bg-blue-50/70 border border-blue-100">
+              <div class="flex justify-between items-center font-bold text-blue-900 mb-1">
+                <span>BOM</span>
+                <span>Pontos &gt; Programações / 2</span>
+              </div>
+              <p class="text-blue-700">Quantidade de pontos estritamente maior que as programações divididas por 2 (metade) e &le; 80%.</p>
+            </div>
+            <div class="p-3 rounded-xl bg-amber-50/70 border border-amber-100">
+              <div class="flex justify-between items-center font-bold text-amber-900 mb-1">
+                <span>REGULAR</span>
+                <span>Pontos = Programações / 2</span>
+              </div>
+              <p class="text-amber-700">Quantidade de pontos exatamente igual às programações divididas por 2 (metade exata).</p>
+            </div>
+            <div class="p-3 rounded-xl bg-rose-50/70 border border-rose-100">
+              <div class="flex justify-between items-center font-bold text-rose-900 mb-1">
+                <span>RUIM</span>
+                <span>Pontos &lt; Programações / 2</span>
+              </div>
+              <p class="text-rose-700">Quantidade de pontos estritamente menor que as programações divididas por 2.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card: Classificação do Aprisco -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4 md:col-span-2">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
+              <i class="fa-solid fa-crown"></i>
+            </div>
+            <div>
+              <h3 class="font-bold text-slate-800 text-base">Classificação do Aprisco (Grupo)</h3>
+              <p class="text-xs text-slate-500">Calculada mensalmente e no consolidado Geral</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 space-y-1.5">
+              <div class="font-bold text-emerald-900 text-sm flex items-center gap-1.5">
+                <i class="fa-solid fa-circle-check text-emerald-600"></i> Ótimo
+              </div>
+              <p class="text-emerald-800 font-medium">Frequentes &ge; Membros &times; 0,8</p>
+              <p class="text-emerald-700 text-[11px]">A soma dos membros Ótimos e Bons é maior ou igual a 80% do total de membros.</p>
+            </div>
+            <div class="p-4 rounded-xl bg-blue-50 border border-blue-200 space-y-1.5">
+              <div class="font-bold text-blue-900 text-sm flex items-center gap-1.5">
+                <i class="fa-solid fa-thumbs-up text-blue-600"></i> Bom
+              </div>
+              <p class="text-blue-800 font-medium">Frequentes &ge; Membros / 2</p>
+              <p class="text-blue-700 text-[11px]">A soma dos membros Ótimos e Bons é maior ou igual a 50% do total de membros.</p>
+            </div>
+            <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 space-y-1.5">
+              <div class="font-bold text-rose-900 text-sm flex items-center gap-1.5">
+                <i class="fa-solid fa-triangle-exclamation text-rose-600"></i> Ruim
+              </div>
+              <p class="text-rose-800 font-medium">Qualquer outro caso</p>
+              <p class="text-rose-700 text-[11px]">Quando a soma de Ótimos e Bons fica abaixo de 50% dos membros cadastrados.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================================== -->
+  <!-- MODAIS                                                         -->
+  <!-- ============================================================== -->
+
+  <!-- Modal: Cadastrar / Editar Membro -->
+  <div id="modalMembro" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden transform transition-all">
+      <div class="bg-indigo-600 px-6 py-4 text-white flex justify-between items-center">
+        <h3 id="modalMembroTitle" class="font-bold text-base flex items-center gap-2">
+          <i class="fa-solid fa-user-plus"></i> Novo Membro
+        </h3>
+        <button onclick="closeModal('modalMembro')" class="text-white/80 hover:text-white transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <form id="formMembro" class="p-6 space-y-4">
+        <input type="hidden" id="inputMembroId">
+
+        <div>
+          <label for="inputNomeMembro" class="block text-xs font-semibold text-slate-700 mb-1">Nome Completo *</label>
+          <input type="text" id="inputNomeMembro" required placeholder="Ex: Dennis Alves" class="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+        </div>
+
+        <div>
+          <label for="inputTelefoneMembro" class="block text-xs font-semibold text-slate-700 mb-1">Telefone / WhatsApp</label>
+          <input type="text" id="inputTelefoneMembro" placeholder="(00) 00000-0000" class="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="inputNascMembro" class="block text-xs font-semibold text-slate-700 mb-1">Data Nascimento</label>
+            <input type="date" id="inputNascMembro" class="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+          </div>
+          <div>
+            <label for="inputFuncaoMembro" class="block text-xs font-semibold text-slate-700 mb-1">Função / Cargo</label>
+            <input type="text" id="inputFuncaoMembro" placeholder="Ex: Líder, Membro" class="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+          </div>
+        </div>
+
+        <div>
+          <label for="inputObsMembro" class="block text-xs font-semibold text-slate-700 mb-1">Observações</label>
+          <textarea id="inputObsMembro" rows="2" placeholder="Informações adicionais..." class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeModal('modalMembro')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">
+            Cancelar
+          </button>
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-5 py-2.5 rounded-xl transition shadow">
+            Salvar Membro
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Adicionar Data / Programação -->
+  <div id="modalData" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden transform transition-all">
+      <div class="bg-indigo-600 px-5 py-4 text-white flex justify-between items-center">
+        <h3 class="font-bold text-base flex items-center gap-2">
+          <i class="fa-solid fa-calendar-plus"></i> Nova Programação
+        </h3>
+        <button onclick="closeModal('modalData')" class="text-white/80 hover:text-white transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <form id="formData" class="p-5 space-y-4">
+        <div>
+          <label for="inputNovaData" class="block text-xs font-semibold text-slate-700 mb-1">Data do Encontro *</label>
+          <input type="date" id="inputNovaData" required class="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+        </div>
+        <div>
+          <label for="inputDescricaoData" class="block text-xs font-semibold text-slate-700 mb-1">Descrição / Tema (Opcional)</label>
+          <input type="text" id="inputDescricaoData" placeholder="Ex: Célula, Reunião de Oração..." class="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+        </div>
+        <div class="flex justify-end gap-2.5 pt-2 border-t border-slate-100">
+          <button type="button" onclick="closeModal('modalData')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">
+            Cancelar
+          </button>
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-5 py-2.5 rounded-xl transition shadow">
+            Adicionar Data
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Renomear Aprisco -->
+  <div id="modalNomeAprisco" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+      <div class="bg-indigo-600 px-5 py-4 text-white flex justify-between items-center">
+        <h3 class="font-bold text-base flex items-center gap-2">
+          <i class="fa-solid fa-pen"></i> Nome do Aprisco
+        </h3>
+        <button onclick="closeModal('modalNomeAprisco')" class="text-white/80 hover:text-white transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <form id="formNomeAprisco" class="p-5 space-y-4">
+        <div>
+          <label for="inputNomeAprisco" class="block text-xs font-semibold text-slate-700 mb-1">Nome do seu Grupo / Aprisco</label>
+          <input type="text" id="inputNomeAprisco" required placeholder="Ex: Aprisco Peniel" class="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+        </div>
+        <div class="flex justify-end gap-2.5 pt-2 border-t border-slate-100">
+          <button type="button" onclick="closeModal('modalNomeAprisco')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">
+            Cancelar
+          </button>
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-5 py-2.5 rounded-xl transition shadow">
+            Salvar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Desligar / Remover Membro (com histórico preservado) -->
+  <div id="modalDesligarMembro" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden transform transition-all">
+      <div class="bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 px-6 py-4 text-white flex justify-between items-center">
+        <h3 class="font-bold text-base flex items-center gap-2">
+          <i class="fa-solid fa-user-xmark"></i> Desligar / Remover Membro
+        </h3>
+        <button onclick="closeModal('modalDesligarMembro')" class="text-white/80 hover:text-white transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <input type="hidden" id="inputDesligarMembroId">
+
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-3">
+          <i class="fa-solid fa-shield-heart text-amber-600 text-lg mt-0.5"></i>
+          <div class="text-xs text-amber-900 leading-relaxed">
+            <strong class="block text-sm font-bold text-amber-950 mb-0.5" id="desligarMembroNome">Nome do Membro</strong>
+            Ao desligar, <strong>toda a frequência e os pontos</strong> que este membro fez nos meses em que participou <strong>continuarão salvos no histórico</strong>. Ele apenas deixará de aparecer na lista a partir dos meses seguintes.
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Último mês em que o membro esteve no Aprisco:</label>
+          <div class="grid grid-cols-2 gap-2">
+            <select id="selectDesligarMes" class="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="0">Janeiro</option>
+              <option value="1">Fevereiro</option>
+              <option value="2">Março</option>
+              <option value="3">Abril</option>
+              <option value="4">Maio</option>
+              <option value="5">Junho</option>
+              <option value="6">Julho</option>
+              <option value="7">Agosto</option>
+              <option value="8">Setembro</option>
+              <option value="9">Outubro</option>
+              <option value="10">Novembro</option>
+              <option value="11">Dezembro</option>
+            </select>
+            <select id="selectDesligarAno" class="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026" selected>2026</option>
+              <option value="2027">2027</option>
+            </select>
+          </div>
+          <p class="text-[11px] text-slate-500 mt-1">O membro continuará aparecendo até o mês escolhido acima, e não constará a partir do mês seguinte.</p>
+        </div>
+
+        <div class="space-y-2 pt-2 border-t border-slate-100">
+          <button type="button" onclick="confirmarDesligamentoMembro()" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-semibold text-xs py-2.5 rounded-xl transition shadow flex items-center justify-center gap-2">
+            <i class="fa-solid fa-check"></i>
+            <span>Confirmar Saída (Preservar Histórico)</span>
+          </button>
+
+          <button type="button" onclick="confirmarExclusaoDefinitivaMembro()" class="w-full text-rose-600 hover:bg-rose-50 text-xs py-2 rounded-xl transition font-medium flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-trash-can"></i>
+            <span>Excluir Definitivamente (Apaga todo histórico)</span>
+          </button>
+
+          <button type="button" onclick="closeModal('modalDesligarMembro')" class="w-full text-slate-400 hover:text-slate-600 text-xs py-1 transition text-center">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notificação Toast Flutuante -->
+  <div id="toastNotification" class="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 transition-all duration-300 translate-y-20 opacity-0 pointer-events-none text-sm">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+    <span id="toastMessage">Operação realizada com sucesso!</span>
+  </div>
+
+  <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
+    Sistema de Frequência do Aprisco &copy; <span id="currentYearFooter">2026</span> &bull; Dados salvos automaticamente no navegador
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
