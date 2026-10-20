@@ -1,106 +1,175 @@
-/* Estilos complementares e refinamento do design */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* Estilos complementares e refinamento do design com Alto Contraste */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Sub-abas de meses */
+/* ============================================================== */
+/* SUB-ABAS DE MESES - ALTO CONTRASTE E NITIDEZ                   */
+/* ============================================================== */
 .month-pill {
-  color: #64748b;
-  background-color: transparent;
+  color: #0f172a; /* Slate 900 - máxima legibilidade */
+  background-color: #ffffff;
+  border: 1.5px solid #cbd5e1; /* Borda bem visível */
+  font-weight: 700;
+  transition: all 0.15s ease-in-out;
 }
 
 .month-pill:hover {
   background-color: #f1f5f9;
-  color: #334155;
+  color: #000000;
+  border-color: #64748b;
 }
 
 .month-pill.active {
-  background-color: #4f46e5;
-  color: #ffffff;
-  font-weight: 700;
-  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.25), 0 2px 4px -2px rgba(79, 70, 229, 0.25);
+  background-color: #6b21a8 !important; /* Purple 800 - contraste altíssimo */
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border-color: #581c87 !important;
+  box-shadow: 0 2px 6px rgba(88, 28, 135, 0.4);
+}
+
+#pillGeral {
+  border: 1.5px solid #a855f7;
+  color: #6b21a8;
+  background-color: #faf5ff;
+}
+
+#pillGeral:hover {
+  background-color: #f3e8ff;
+  color: #581c87;
+}
+
+#pillGeral.active {
+  background-color: #6b21a8 !important;
+  color: #ffffff !important;
+  border-color: #581c87 !important;
 }
 
 .tab-main-btn.active {
-  color: #4f46e5;
-  border-bottom: 2px solid #4f46e5;
-  background-color: #eef2ff;
+  color: #6b21a8;
+  border-bottom: 3px solid #6b21a8;
+  background-color: #faf5ff;
+  font-weight: 800;
 }
 
-/* Células de Presença na Tabela */
+/* ============================================================== */
+/* CÉLULAS DE PRESENÇA NA TABELA - CORES FORTES E INCONFUNDÍVEIS  */
+/* ============================================================== */
 .attendance-cell {
   user-select: none;
   cursor: pointer;
-  transition: all 0.15s ease-in-out;
+  transition: all 0.12s ease-in-out;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
 }
 
 .attendance-cell:hover {
-  filter: brightness(0.95);
-  transform: scale(1.05);
+  filter: brightness(0.92);
+  transform: scale(1.1);
 }
 
+/* P (Presente): Verde Esmeralda Forte e Sólido */
 .badge-p {
-  background-color: #d1fae5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
+  background-color: #15803d !important; /* Emerald 700 */
+  color: #ffffff !important;
+  border: 1.5px solid #166534 !important;
+  box-shadow: 0 1px 3px rgba(21, 128, 61, 0.3);
 }
 
+/* FJ (Falta Justificada): Laranja Âmbar Vibrante */
 .badge-fj {
-  background-color: #fef3c7;
-  color: #92400e;
-  border: 1px solid #fde68a;
+  background-color: #d97706 !important; /* Amber 600 / Laranja */
+  color: #ffffff !important;
+  border: 1.5px solid #b45309 !important;
+  box-shadow: 0 1px 3px rgba(217, 119, 6, 0.3);
 }
 
+/* F (Falta): Vermelho Intenso Vivo */
 .badge-f {
-  background-color: #ffe4e6;
-  color: #9f1239;
-  border: 1px solid #fecdd3;
+  background-color: #dc2626 !important; /* Red 600 */
+  color: #ffffff !important;
+  border: 1.5px solid #b91c1c !important;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.3);
 }
 
+/* Vazio: Fundo cinza com contorno nítido */
 .badge-empty {
-  background-color: #f8fafc;
-  color: #94a3b8;
-  border: 1px dashed #cbd5e1;
-}
-
-/* Badges de Classificação Individual */
-.rank-otimo {
-  background-color: #dcfce7;
-  color: #15803d;
-  border: 1px solid #86efac;
-}
-
-.rank-bom {
-  background-color: #dbeafe;
-  color: #1d4ed8;
-  border: 1px solid #93c5fd;
-}
-
-.rank-regular {
-  background-color: #fef9c3;
-  color: #a16207;
-  border: 1px solid #fde047;
-}
-
-.rank-ruim {
-  background-color: #fee2e2;
-  color: #b91c1c;
-  border: 1px solid #fca5a5;
-}
-
-.rank-neutro {
   background-color: #f1f5f9;
   color: #64748b;
-  border: 1px solid #e2e8f0;
+  border: 1.5px dashed #94a3b8;
+}
+
+/* ============================================================== */
+/* BADGES DE CLASSIFICAÇÃO INDIVIDUAL - 4 CORES DISTINTAS         */
+/* ============================================================== */
+/* Ótimo: Verde Esmeralda Sólido */
+.rank-otimo {
+  background-color: #15803d !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border: 1.5px solid #14532d !important;
+  box-shadow: 0 1px 3px rgba(21, 128, 61, 0.35);
+}
+
+/* Bom: Azul Real Puro (alto contraste contra verde e laranja) */
+.rank-bom {
+  background-color: #1d4ed8 !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border: 1.5px solid #1e3a8a !important;
+  box-shadow: 0 1px 3px rgba(29, 78, 216, 0.35);
+}
+
+/* Regular: Laranja Intenso (totalmente distinto de verde e azul) */
+.rank-regular {
+  background-color: #ea580c !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border: 1.5px solid #9a3412 !important;
+  box-shadow: 0 1px 3px rgba(234, 88, 12, 0.35);
+}
+
+/* Ruim: Vermelho Carmim Forte */
+.rank-ruim {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border: 1.5px solid #991b1b !important;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.35);
+}
+
+/* Neutro / Sem Dados */
+.rank-neutro {
+  background-color: #475569 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  border: 1.5px solid #334155 !important;
+}
+
+/* ============================================================== */
+/* LINHAS E BORDAS DA TABELA COM MAIS DEFINIÇÃO                   */
+/* ============================================================== */
+#tabelaFrequencia th,
+#tabelaFrequencia td {
+  border-color: #cbd5e1 !important; /* Linhas bem visíveis entre células */
+}
+
+#tabelaFrequencia tbody tr:hover {
+  background-color: #f1f5f9 !important;
+}
+
+#tabelaFrequencia tbody tr:nth-child(even) {
+  background-color: #fafaf9; /* Linhas levemente zebradas para não perder o olho */
 }
 
 /* Scrollbar refinada */
 .scrollbar-thin::-webkit-scrollbar {
-  height: 5px;
-  width: 5px;
+  height: 6px;
+  width: 6px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-track {
@@ -109,12 +178,12 @@ body {
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #94a3b8;
   border-radius: 9999px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #64748b;
 }
 
 /* Estilo para Impressão */
@@ -138,7 +207,7 @@ body {
   }
 
   th, td {
-    border: 1px solid #cbd5e1 !important;
+    border: 1px solid #64748b !important;
     padding: 6px 8px !important;
   }
 }

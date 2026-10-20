@@ -3,6 +3,24 @@
  * Desenvolvido para controle fácil, intuitivo e sem necessidade de mexer no código.
  */
 
+function aplicarIconeAba() {
+  if (typeof CONFIG_IMAGEM_ABA !== 'undefined' && CONFIG_IMAGEM_ABA) {
+    let link = document.getElementById('iconeAbaSite');
+    if (!link) {
+      link = document.createElement('link');
+      link.id = 'iconeAbaSite';
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = CONFIG_IMAGEM_ABA;
+
+    let appleLink = document.querySelector("link[rel='apple-touch-icon']");
+    if (appleLink) {
+      appleLink.href = CONFIG_IMAGEM_ABA;
+    }
+  }
+}
+
 // Nomes dos meses em português
 const MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -291,24 +309,28 @@ function calcularPontosPessoa(registros) {
 }
 
 function classificarMembro(pontos, totalProgramacoes) {
-  if (totalProgramacoes === 0) return { label: 'Sem dados', classKey: 'neutro' };
+  if (!totalProgramacoes || totalProgramacoes <= 0) {
+    return { label: 'Sem dados', classKey: 'neutro' };
+  }
 
-  const metaOtimo = totalProgramacoes * 0.8;
-  const metade = totalProgramacoes / 2;
+  // Normalização e arredondamento a 2 casas decimais para eliminar discrepâncias de ponto flutuante
+  const pts = Math.round((pontos || 0) * 100) / 100;
+  const metaOtimo = Math.round((totalProgramacoes * 0.8) * 100) / 100;
+  const metade = Math.round((totalProgramacoes / 2) * 100) / 100;
 
-  // Ótimo: Pontos > Programações * 0.8
-  if (pontos > metaOtimo) {
+  // 1. Ótimo: quantidade de pontos > (quantidade de programações * 0,8)
+  if (pts > metaOtimo) {
     return { label: 'Ótimo', classKey: 'otimo' };
   }
-  // Bom: Pontos > Programações / 2 (e <= metaOtimo)
-  if (pontos > metade) {
+  // 2. Bom: quantidade de pontos > (quantidade de programações / 2)
+  if (pts > metade) {
     return { label: 'Bom', classKey: 'bom' };
   }
-  // Regular: Pontos = Programações / 2
-  if (Math.abs(pontos - metade) < 0.001) {
+  // 3. Regular: quantidade de pontos = (quantidade de programações / 2)
+  if (pts === metade) {
     return { label: 'Regular', classKey: 'regular' };
   }
-  // Ruim: Pontos < Programações / 2
+  // 4. Ruim: quantidade de pontos < (quantidade de programações / 2)
   return { label: 'Ruim', classKey: 'ruim' };
 }
 
@@ -496,12 +518,12 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
   emptyNotice.classList.add('hidden');
 
   let sortIconNome = 'fa-sort text-slate-400';
-  if (appData.ordemFrequencia === 'nome_az') sortIconNome = 'fa-arrow-down-a-z text-indigo-600';
-  else if (appData.ordemFrequencia === 'nome_za') sortIconNome = 'fa-arrow-up-a-z text-indigo-600';
+  if (appData.ordemFrequencia === 'nome_az') sortIconNome = 'fa-arrow-down-a-z text-purple-600';
+  else if (appData.ordemFrequencia === 'nome_za') sortIconNome = 'fa-arrow-up-a-z text-purple-600';
 
-  let sortIconPontos = 'fa-sort text-indigo-400 text-[10px]';
-  if (appData.ordemFrequencia === 'pontos_desc') sortIconPontos = 'fa-arrow-down-9-1 text-indigo-700';
-  else if (appData.ordemFrequencia === 'pontos_asc') sortIconPontos = 'fa-arrow-up-1-9 text-indigo-700';
+  let sortIconPontos = 'fa-sort text-purple-400 text-[10px]';
+  if (appData.ordemFrequencia === 'pontos_desc') sortIconPontos = 'fa-arrow-down-9-1 text-purple-700';
+  else if (appData.ordemFrequencia === 'pontos_asc') sortIconPontos = 'fa-arrow-up-1-9 text-purple-700';
 
   let headerHtml = `
     <th class="py-3.5 px-4 sticky left-0 bg-slate-100 z-10 w-52 min-w-[200px] cursor-pointer hover:bg-slate-200/80 transition" onclick="alternarOrdemNomeFrequencia()" title="Clique para alternar ordem alfabética (A-Z / Z-A)">
@@ -519,8 +541,8 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
     headerHtml += `
       <th class="py-3 px-2 text-center min-w-[85px] border-l border-slate-200 group relative">
         <div class="font-bold text-slate-800 text-xs">${dataFormatada}</div>
-        <div class="text-[10px] text-slate-400 font-normal truncate max-w-[85px]" title="${prog.descricao || 'Encontro'}">
-          ${prog.descricao || 'Encontro'}
+        <div class="text-[10px] text-slate-400 font-normal truncate max-w-[85px]" title="${prog.descricao || 'Aprisco'}">
+          ${prog.descricao || 'Aprisco'}
         </div>
         <div class="mt-1 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition">
           <button onclick="marcarTodosPresentesData('${prog.id}')" title="Marcar todos como Presente nesta data" class="text-[10px] bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-1.5 py-0.5 rounded">
@@ -535,17 +557,17 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
   });
 
   headerHtml += `
-    <th class="py-3.5 px-3 text-center border-l-2 border-slate-300 bg-slate-200/50 text-slate-800 min-w-[45px]" title="Presenças (1 pt cada)">P</th>
-    <th class="py-3.5 px-3 text-center border-l border-slate-200 bg-slate-200/50 text-slate-800 min-w-[45px]" title="Faltas Justificadas (0.5 pt cada)">FJ</th>
-    <th class="py-3.5 px-3 text-center border-l border-slate-200 bg-slate-200/50 text-slate-800 min-w-[45px]" title="Faltas (0 pt)">F</th>
-    <th class="py-3.5 px-3 text-center border-l border-slate-200 bg-slate-200/50 text-slate-800 min-w-[55px]" title="Total de Presenças (P)">Tot. P</th>
-    <th class="py-3.5 px-3 text-center border-l border-slate-200 bg-indigo-50/70 text-indigo-900 font-extrabold min-w-[75px] cursor-pointer hover:bg-indigo-100 transition" onclick="alternarOrdemPontosFrequencia()" title="Clique para ordenar por maior ou menor pontuação">
+    <th class="py-3.5 px-3 text-center border-l-2 border-slate-300 bg-emerald-100 text-emerald-950 font-extrabold min-w-[48px]" title="Presenças (1 pt cada)">P</th>
+    <th class="py-3.5 px-3 text-center border-l border-slate-200 bg-orange-100 text-orange-950 font-extrabold min-w-[48px]" title="Faltas Justificadas (0.5 pt cada)">FJ</th>
+    <th class="py-3.5 px-3 text-center border-l border-slate-200 bg-rose-100 text-rose-950 font-extrabold min-w-[48px]" title="Faltas (0 pt)">F</th>
+    <th class="py-3.5 px-3 text-center border-l border-slate-200 bg-slate-200/90 text-slate-900 font-extrabold min-w-[55px]" title="Total de Presenças (P)">Tot. P</th>
+    <th class="py-3.5 px-3 text-center border-l border-slate-200 bg-purple-100 text-purple-950 font-extrabold min-w-[75px] cursor-pointer hover:bg-purple-200 transition" onclick="alternarOrdemPontosFrequencia()" title="Clique para ordenar por maior ou menor pontuação">
       <div class="flex items-center justify-center gap-1">
         <span>Pontos</span>
         <i class="fa-solid ${sortIconPontos}"></i>
       </div>
     </th>
-    <th class="py-3.5 px-4 text-center border-l border-slate-200 bg-slate-100 text-slate-800 min-w-[100px]">Classificação</th>
+    <th class="py-3.5 px-4 text-center border-l border-slate-200 bg-slate-200/90 text-slate-900 font-extrabold min-w-[110px]">Classificação</th>
   `;
 
   headerRow.innerHTML = headerHtml;
@@ -556,17 +578,17 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
     const isDesligado = membro.ativo === false;
 
     bodyHtml += `
-      <tr class="hover:bg-slate-50/80 transition ${isDesligado ? 'bg-amber-50/20' : ''}">
-        <td class="py-3 px-4 font-semibold text-slate-800 sticky left-0 bg-white hover:bg-slate-50 transition border-r border-slate-100 shadow-sm">
+      <tr class="hover:bg-slate-50 transition ${isDesligado ? 'bg-slate-100/70' : ''}">
+        <td class="py-3 px-4 font-semibold text-slate-800 sticky left-0 bg-white hover:bg-slate-50 transition border-r border-slate-200 shadow-sm">
           <div class="flex items-center gap-2">
-            <div class="w-7 h-7 rounded-full ${isDesligado ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-700'} font-bold text-xs flex items-center justify-center shrink-0">
+            <div class="w-7 h-7 rounded-full ${isDesligado ? 'bg-slate-200 text-slate-700' : 'bg-purple-100 text-purple-900 font-black border border-purple-300'} font-bold text-xs flex items-center justify-center shrink-0">
               ${membro.nome.charAt(0).toUpperCase()}
             </div>
             <div class="truncate max-w-[150px]">
-              <span class="text-sm block">${membro.nome}</span>
+              <span class="text-sm block font-bold ${isDesligado ? 'text-slate-500' : 'text-slate-900'}">${membro.nome}</span>
               <div class="flex items-center gap-1 text-[10px]">
-                ${membro.funcao ? `<span class="text-slate-400">${membro.funcao}</span>` : ''}
-                ${isDesligado ? `<span class="text-amber-600 font-medium bg-amber-50 px-1 rounded">(Desligado)</span>` : ''}
+                ${membro.funcao ? `<span class="text-slate-500 font-medium">${membro.funcao}</span>` : ''}
+                ${isDesligado ? `<span class="text-amber-800 font-bold bg-amber-100 px-1 rounded">(Desligado)</span>` : ''}
               </div>
             </div>
           </div>
@@ -590,9 +612,9 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
       }
 
       bodyHtml += `
-        <td class="py-2.5 px-2 text-center border-l border-slate-100">
+        <td class="py-2.5 px-2 text-center border-l border-slate-200">
           <div 
-            class="attendance-cell inline-flex items-center justify-center w-8 h-8 rounded-lg font-bold text-xs ${badgeClass}"
+            class="attendance-cell inline-flex items-center justify-center w-8 h-8 rounded-lg font-black text-xs ${badgeClass}"
             onclick="toggleStatusPresenca('${membro.id}', '${prog.id}')"
             title="Clique para alternar: P -> FJ -> F -> Vazio">
             ${statusText}
@@ -604,13 +626,13 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
     const badgeRankClass = `rank-${classif.classKey}`;
 
     bodyHtml += `
-        <td class="py-2.5 px-3 text-center border-l-2 border-slate-300 font-bold text-emerald-700 bg-emerald-50/30">${p}</td>
-        <td class="py-2.5 px-3 text-center border-l border-slate-100 font-bold text-amber-700 bg-amber-50/30">${fj}</td>
-        <td class="py-2.5 px-3 text-center border-l border-slate-100 font-bold text-rose-700 bg-rose-50/30">${f}</td>
-        <td class="py-2.5 px-3 text-center border-l border-slate-100 font-bold text-slate-800">${p}</td>
-        <td class="py-2.5 px-3 text-center border-l border-slate-100 font-extrabold text-indigo-700 bg-indigo-50/50 text-sm">${totalPontos.toFixed(1)}</td>
-        <td class="py-2.5 px-4 text-center border-l border-slate-100">
-          <span class="inline-block px-2.5 py-1 rounded-full text-xs font-bold ${badgeRankClass}">
+        <td class="py-2.5 px-3 text-center border-l-2 border-slate-300 font-black text-emerald-900 bg-emerald-50/80">${p}</td>
+        <td class="py-2.5 px-3 text-center border-l border-slate-200 font-black text-orange-900 bg-orange-50/80">${fj}</td>
+        <td class="py-2.5 px-3 text-center border-l border-slate-200 font-black text-rose-900 bg-rose-50/80">${f}</td>
+        <td class="py-2.5 px-3 text-center border-l border-slate-200 font-bold text-slate-900 bg-slate-50">${p}</td>
+        <td class="py-2.5 px-3 text-center border-l border-slate-200 font-black text-purple-950 bg-purple-50/80 text-sm">${totalPontos.toFixed(1)}</td>
+        <td class="py-2.5 px-4 text-center border-l border-slate-200">
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-black shadow-sm ${badgeRankClass}">
             ${classif.label}
           </span>
         </td>
@@ -675,7 +697,7 @@ function renderGeralView() {
   const yearData = getCurrentYearData();
 
   // Membros que participaram em algum momento deste ano
-  const membrosParticipantesAno = appData.membros.filter(m => isMembroPresenteNoAno(m, appData.anoAtual));
+  const membrosParticipantesAno = appData.membros.filter(m => m.ativo !== false);
   const totalMembrosAtivos = appData.membros.filter(m => m.ativo !== false).length;
 
   document.getElementById('currentPeriodTitle').innerHTML = `
@@ -692,7 +714,7 @@ function renderGeralView() {
 
   const membroTotais = {};
   membrosParticipantesAno.forEach(m => {
-    membroTotais[m.id] = { p: 0, fj: 0, f: 0, totalPontos: 0 };
+    membroTotais[m.id] = { p: 0, fj: 0, f: 0, totalPontos: 0, totalProgramacoes: 0 };
   });
 
   for (let m = 0; m < 12; m++) {
@@ -704,6 +726,7 @@ function renderGeralView() {
       membrosParticipantesAno.forEach(mem => {
         // Apenas computa se o membro esteve ativo no mês m
         if (isMembroAtivoNoMes(mem, appData.anoAtual, m)) {
+          membroTotais[mem.id].totalProgramacoes += qProgMes;
           const regs = mData.frequencias ? (mData.frequencias[mem.id] || {}) : {};
           const pts = calcularPontosPessoa(regs);
           membroTotais[mem.id].p += pts.p;
@@ -726,9 +749,11 @@ function renderGeralView() {
 
   const membrosGeralStats = membrosParticipantesAno.map(membro => {
     const dados = membroTotais[membro.id];
-    const classif = classificarMembro(dados.totalPontos, totalProgramacoesAno);
+    // Se o membro é desligado e participou de meses específicos, usa as programações do período dele; caso contrário, total do ano
+    const progsBase = (membro.ativo === false && dados.totalProgramacoes > 0) ? dados.totalProgramacoes : totalProgramacoesAno;
+    const classif = classificarMembro(dados.totalPontos, progsBase);
 
-    if (totalProgramacoesAno > 0) {
+    if (progsBase > 0) {
       if (classif.classKey === 'otimo') countOtimosGeral++;
       else if (classif.classKey === 'bom') countBonsGeral++;
       else if (classif.classKey === 'regular') countRegularesGeral++;
@@ -738,6 +763,7 @@ function renderGeralView() {
     return {
       membro,
       ...dados,
+      progsBase,
       classif
     };
   });
@@ -775,7 +801,7 @@ function renderGeralView() {
 }
 
 /**
- * Monta o HTML da tabela Geral Consolidada
+ * Monta o HTML da tabela Geral Consolidada com Alto Contraste
  */
 function renderTabelaGeral(membrosGeralStats, totalProgramacoesAno) {
   const headerRow = document.getElementById('tabelaHeaderRow');
@@ -791,70 +817,71 @@ function renderTabelaGeral(membrosGeralStats, totalProgramacoesAno) {
   emptyNotice.classList.add('hidden');
 
   let sortIconNome = 'fa-sort text-slate-400';
-  if (appData.ordemFrequencia === 'nome_az') sortIconNome = 'fa-arrow-down-a-z text-indigo-600';
-  else if (appData.ordemFrequencia === 'nome_za') sortIconNome = 'fa-arrow-up-a-z text-indigo-600';
+  if (appData.ordemFrequencia === 'nome_az') sortIconNome = 'fa-arrow-down-a-z text-purple-700 font-bold';
+  else if (appData.ordemFrequencia === 'nome_za') sortIconNome = 'fa-arrow-up-a-z text-purple-700 font-bold';
 
-  let sortIconPontos = 'fa-sort text-indigo-400 text-[10px]';
-  if (appData.ordemFrequencia === 'pontos_desc') sortIconPontos = 'fa-arrow-down-9-1 text-indigo-700';
-  else if (appData.ordemFrequencia === 'pontos_asc') sortIconPontos = 'fa-arrow-up-1-9 text-indigo-700';
+  let sortIconPontos = 'fa-sort text-purple-400 text-[10px]';
+  if (appData.ordemFrequencia === 'pontos_desc') sortIconPontos = 'fa-arrow-down-9-1 text-purple-900 font-bold';
+  else if (appData.ordemFrequencia === 'pontos_asc') sortIconPontos = 'fa-arrow-up-1-9 text-purple-900 font-bold';
 
   headerRow.innerHTML = `
-    <th class="py-3.5 px-4 sticky left-0 bg-slate-100 z-10 w-52 min-w-[200px] cursor-pointer hover:bg-slate-200/80 transition" onclick="alternarOrdemNomeFrequencia()" title="Clique para alternar ordem alfabética (A-Z / Z-A)">
+    <th class="py-3.5 px-4 sticky left-0 bg-slate-100 z-10 w-52 min-w-[200px] cursor-pointer hover:bg-slate-200 transition" onclick="alternarOrdemNomeFrequencia()" title="Clique para alternar ordem alfabética (A-Z / Z-A)">
       <div class="flex items-center justify-between">
-        <span>Membro</span>
+        <span class="font-bold text-slate-900">Membro</span>
         <i class="fa-solid ${sortIconNome}"></i>
       </div>
     </th>
-    <th class="py-3.5 px-3 text-center border-l border-slate-200">Presenças (P)</th>
-    <th class="py-3.5 px-3 text-center border-l border-slate-200">Justificadas (FJ)</th>
-    <th class="py-3.5 px-3 text-center border-l border-slate-200">Faltas (F)</th>
-    <th class="py-3.5 px-3 text-center border-l border-slate-200 bg-indigo-50/70 text-indigo-900 font-extrabold cursor-pointer hover:bg-indigo-100 transition" onclick="alternarOrdemPontosFrequencia()" title="Clique para ordenar por maior ou menor pontuação">
+    <th class="py-3.5 px-3 text-center border-l border-slate-200 bg-emerald-100 text-emerald-950 font-extrabold" title="Total de Presenças (P)">Presenças (P)</th>
+    <th class="py-3.5 px-3 text-center border-l border-slate-200 bg-orange-100 text-orange-950 font-extrabold" title="Total de Faltas Justificadas (FJ)">Justificadas (FJ)</th>
+    <th class="py-3.5 px-3 text-center border-l border-slate-200 bg-rose-100 text-rose-950 font-extrabold" title="Total de Faltas (F)">Faltas (F)</th>
+    <th class="py-3.5 px-3 text-center border-l border-slate-200 bg-purple-100 text-purple-950 font-extrabold cursor-pointer hover:bg-purple-200 transition" onclick="alternarOrdemPontosFrequencia()" title="Clique para ordenar por pontuação">
       <div class="flex items-center justify-center gap-1">
         <span>Pontos Totais</span>
         <i class="fa-solid ${sortIconPontos}"></i>
       </div>
     </th>
-    <th class="py-3.5 px-4 text-center border-l border-slate-200">% Aproveitamento</th>
-    <th class="py-3.5 px-4 text-center border-l border-slate-200 bg-slate-100">Classificação Geral</th>
+    <th class="py-3.5 px-4 text-center border-l border-slate-200 bg-slate-200/90 text-slate-900 font-extrabold">% Aproveitamento</th>
+    <th class="py-3.5 px-4 text-center border-l border-slate-200 bg-slate-200/90 text-slate-900 font-extrabold" title="Ótimo: Pontos > Progs * 0.8 | Bom: Pontos > Progs / 2 | Regular: Pontos = Progs / 2 | Ruim: Pontos < Progs / 2">Classificação Geral</th>
   `;
 
   let bodyHtml = '';
 
-  membrosGeralStats.forEach(({ membro, p, fj, f, totalPontos, classif }) => {
-    const aproveitamento = totalProgramacoesAno > 0 ? Math.round((totalPontos / totalProgramacoesAno) * 100) : 0;
+  membrosGeralStats.forEach(({ membro, p, fj, f, totalPontos, progsBase, classif }) => {
+    const baseProgs = progsBase !== undefined ? progsBase : totalProgramacoesAno;
+    const aproveitamento = baseProgs > 0 ? Math.round((totalPontos / baseProgs) * 100) : 0;
     const badgeRankClass = `rank-${classif.classKey}`;
     const isDesligado = membro.ativo === false;
 
     bodyHtml += `
-      <tr class="hover:bg-slate-50/80 transition ${isDesligado ? 'bg-amber-50/20' : ''}">
-        <td class="py-3 px-4 font-semibold text-slate-800 sticky left-0 bg-white hover:bg-slate-50 transition border-r border-slate-100 shadow-sm">
+      <tr class="hover:bg-slate-50 transition ${isDesligado ? 'bg-amber-50/30' : ''}">
+        <td class="py-3 px-4 font-semibold text-slate-800 sticky left-0 bg-white hover:bg-slate-50 transition border-r border-slate-200 shadow-sm">
           <div class="flex items-center gap-2">
-            <div class="w-7 h-7 rounded-full ${isDesligado ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-700'} font-bold text-xs flex items-center justify-center shrink-0">
+            <div class="w-8 h-8 rounded-full ${isDesligado ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-purple-100 text-purple-900 border border-purple-300'} font-black text-xs flex items-center justify-center shrink-0">
               ${membro.nome.charAt(0).toUpperCase()}
             </div>
             <div>
-              <span class="text-sm block">${membro.nome}</span>
+              <span class="text-sm block font-bold text-slate-900">${membro.nome}</span>
               <div class="flex items-center gap-1 text-[10px]">
-                ${membro.funcao ? `<span class="text-slate-400">${membro.funcao}</span>` : ''}
-                ${isDesligado ? `<span class="text-amber-700 font-medium bg-amber-50 px-1 rounded">(Desligado em ${MESES[membro.mesSaida]}/${membro.anoSaida})</span>` : ''}
+                ${membro.funcao ? `<span class="text-slate-500 font-medium">${membro.funcao}</span>` : ''}
+                ${isDesligado ? `<span class="text-amber-800 font-bold bg-amber-100 px-1 rounded">(Desligado em ${MESES[membro.mesSaida]}/${membro.anoSaida})</span>` : ''}
               </div>
             </div>
           </div>
         </td>
-        <td class="py-3 px-3 text-center border-l border-slate-100 font-bold text-emerald-700 bg-emerald-50/20">${p}</td>
-        <td class="py-3 px-3 text-center border-l border-slate-100 font-bold text-amber-700 bg-amber-50/20">${fj}</td>
-        <td class="py-3 px-3 text-center border-l border-slate-100 font-bold text-rose-700 bg-rose-50/20">${f}</td>
-        <td class="py-3 px-3 text-center border-l border-slate-100 font-extrabold text-indigo-700 bg-indigo-50/50 text-base">${totalPontos.toFixed(1)}</td>
-        <td class="py-3 px-4 text-center border-l border-slate-100">
+        <td class="py-3 px-3 text-center border-l border-slate-200 font-black text-emerald-900 bg-emerald-50/80">${p}</td>
+        <td class="py-3 px-3 text-center border-l border-slate-200 font-black text-orange-900 bg-orange-50/80">${fj}</td>
+        <td class="py-3 px-3 text-center border-l border-slate-200 font-black text-rose-900 bg-rose-50/80">${f}</td>
+        <td class="py-3 px-3 text-center border-l border-slate-200 font-black text-purple-950 bg-purple-50/80 text-base">${totalPontos.toFixed(1)}</td>
+        <td class="py-3 px-4 text-center border-l border-slate-200">
           <div class="flex items-center justify-center gap-2">
-            <div class="w-16 bg-slate-100 rounded-full h-1.5 overflow-hidden">
-              <div class="bg-indigo-600 h-1.5 rounded-full" style="width: ${Math.min(aproveitamento, 100)}%"></div>
+            <div class="w-16 bg-slate-200 rounded-full h-2 overflow-hidden border border-slate-300">
+              <div class="bg-indigo-600 h-2 rounded-full" style="width: ${Math.min(aproveitamento, 100)}%"></div>
             </div>
-            <span class="text-xs font-semibold text-slate-600">${aproveitamento}%</span>
+            <span class="text-xs font-bold text-slate-900">${aproveitamento}%</span>
           </div>
         </td>
-        <td class="py-3 px-4 text-center border-l border-slate-100">
-          <span class="inline-block px-3 py-1 rounded-full text-xs font-bold ${badgeRankClass}">
+        <td class="py-3 px-4 text-center border-l border-slate-200">
+          <span class="inline-block px-3.5 py-1.5 rounded-full text-xs font-black shadow-sm ${badgeRankClass}" title="Total: ${totalPontos.toFixed(1)} pts em ${baseProgs} programações (Ótimo > ${(baseProgs * 0.8).toFixed(1)}, Metade = ${(baseProgs / 2).toFixed(1)})">
             ${classif.label}
           </span>
         </td>
@@ -882,7 +909,7 @@ function setFiltroStatusMembro(status) {
   });
 
   if (status === 'todos') {
-    btnTodos.className = 'px-3 py-1.5 rounded-lg transition bg-white text-indigo-700 shadow-sm';
+    btnTodos.className = 'px-3 py-1.5 rounded-lg transition bg-white text-purple-700 shadow-sm';
   } else if (status === 'ativos') {
     btnAtivos.className = 'px-3 py-1.5 rounded-lg transition bg-white text-emerald-700 shadow-sm';
   } else if (status === 'inativos') {
@@ -909,8 +936,8 @@ function renderMembrosView() {
   // Atualizar ícones de ordenação na tabela
   const iconNome = document.getElementById('sortIconNome');
   if (iconNome) {
-    if (appData.ordemMembros === 'nome_az') iconNome.className = 'fa-solid fa-arrow-down-a-z text-indigo-600 text-xs';
-    else if (appData.ordemMembros === 'nome_za') iconNome.className = 'fa-solid fa-arrow-up-a-z text-indigo-600 text-xs';
+    if (appData.ordemMembros === 'nome_az') iconNome.className = 'fa-solid fa-arrow-down-a-z text-purple-600 text-xs';
+    else if (appData.ordemMembros === 'nome_za') iconNome.className = 'fa-solid fa-arrow-up-a-z text-purple-600 text-xs';
     else iconNome.className = 'fa-solid fa-sort text-slate-400 text-xs';
   }
 
@@ -954,15 +981,15 @@ function renderMembrosView() {
     const isAtivo = membro.ativo !== false;
 
     html += `
-      <tr class="hover:bg-slate-50 transition ${!isAtivo ? 'bg-amber-50/30' : ''}">
+      <tr class="hover:bg-slate-50 transition ${!isAtivo ? 'bg-slate-50' : ''}">
         <td class="py-3.5 px-4 text-slate-400 font-medium text-xs">${index + 1}</td>
         <td class="py-3.5 px-4 font-semibold text-slate-800">
           <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-full ${isAtivo ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-amber-100 border-amber-300 text-amber-800'} border font-bold text-xs flex items-center justify-center">
+            <div class="w-8 h-8 rounded-full ${isAtivo ? 'bg-indigo-50 border-indigo-200 text-purple-700' : 'bg-slate-200 border-slate-300 text-slate-500'} border font-bold text-xs flex items-center justify-center">
               ${membro.nome.charAt(0).toUpperCase()}
             </div>
             <div>
-              <span>${membro.nome}</span>
+              <span class="${!isAtivo ? 'text-slate-400' : ''}">${membro.nome}</span>
               ${!isAtivo ? `<span class="block text-[11px] text-amber-700 font-medium">Saída: ${MESES[membro.mesSaida]} de ${membro.anoSaida}</span>` : ''}
             </div>
           </div>
@@ -1186,7 +1213,7 @@ document.getElementById('formData').addEventListener('submit', (e) => {
   mData.programacoes.push({
     id: progId,
     data: dataVal,
-    descricao: descVal || 'Encontro'
+    descricao: descVal || 'Aprisco'
   });
 
   mData.programacoes.sort((a, b) => a.data.localeCompare(b.data));
@@ -1410,6 +1437,7 @@ function showToast(mensagem, tipo = 'sucesso') {
 // ====================================================================
 
 window.addEventListener('DOMContentLoaded', () => {
+  aplicarIconeAba();
   loadState();
   renderApp();
 });

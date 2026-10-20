@@ -73,3 +73,10 @@ Aplicativo web completo para controle de frequência, gestão de membros e class
 - **Botão Backup (Download JSON)**: Salve uma cópia de segurança de todos os dados no seu computador.
 - **Botão Restaurar**: Carregue um arquivo de backup para restaurar seus dados ou transferir para outro computador/celular.
 - **Botão Imprimir**: Gera uma versão limpa da tabela formatada para folha A4 / PDF.
+
+### 6. 🖼️ Como Mudar a Imagem da Aba no Navegador (Direto no Código)
+Você pode mudar a imagem da aba de duas formas muito fáceis:
+- **No arquivo [index.html](file:///c:/Users/denni/OneDrive/Documentos/Antigravity/index.html) (linhas 13-14)**:
+  Basta alterar o texto `href="icone.svg"` para o nome da sua foto (ex: `href="sua_foto.png"` ou um link `href="https://..."`).
+- **No arquivo [app.js](file:///c:/Users/denni/OneDrive/Documentos/Antigravity/app.js) (linha 11)**:
+  Basta alterar `const CONFIG_IMAGEM_ABA = 'icone.svg';` para `const CONFIG_IMAGEM_ABA = 'sua_foto.png';`.
