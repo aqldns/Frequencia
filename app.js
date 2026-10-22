@@ -34,11 +34,11 @@ const defaultState = {
   ordemMembros: 'nome_az',
   ordemFrequencia: 'nome_az',
   membros: [
-    { id: '1', nome: 'Dennis Alves', telefone: '(11) 98765-4321', nascimento: '1998-05-15', funcao: 'Líder', obs: 'Coordenação do grupo', ativo: true, createdAt: 1700000001000 },
-    { id: '2', nome: 'Beatriz Silva', telefone: '(11) 97654-3210', nascimento: '2001-08-22', funcao: 'Vice-Líder', obs: '', ativo: true, createdAt: 1700000002000 },
-    { id: '3', nome: 'Carlos Eduardo', telefone: '(11) 96543-2109', nascimento: '2000-02-10', funcao: 'Membro', obs: '', ativo: true, createdAt: 1700000003000 },
-    { id: '4', nome: 'Daniela Souza', telefone: '(11) 95432-1098', nascimento: '1999-11-30', funcao: 'Membro', obs: '', ativo: true, createdAt: 1700000004000 },
-    { id: '5', nome: 'Felipe Santos', telefone: '(11) 94321-0987', nascimento: '2002-04-18', funcao: 'Membro', obs: '', ativo: true, createdAt: 1700000005000 }
+    { id: '1', nome: 'Dennis Alves', nascimento: '1998-05-15', funcao: 'Líder', obs: 'Coordenação do grupo', ativo: true, createdAt: 1700000001000 },
+    { id: '2', nome: 'Beatriz Silva', nascimento: '2001-08-22', funcao: 'Vice-Líder', obs: '', ativo: true, createdAt: 1700000002000 },
+    { id: '3', nome: 'Carlos Eduardo', nascimento: '2000-02-10', funcao: 'Membro', obs: '', ativo: true, createdAt: 1700000003000 },
+    { id: '4', nome: 'Daniela Souza', nascimento: '1999-11-30', funcao: 'Membro', obs: '', ativo: true, createdAt: 1700000004000 },
+    { id: '5', nome: 'Felipe Santos', nascimento: '2002-04-18', funcao: 'Membro', obs: '', ativo: true, createdAt: 1700000005000 }
   ],
   // Estrutura por ano -> mês (0 a 11) -> { programacoes: [{id, data, descricao}], frequencias: { [membroId]: { [progId]: 'P'|'FJ'|'F' } } }
   anos: {
@@ -68,7 +68,7 @@ const defaultState = {
 let appData = { ...defaultState };
 let currentMonthIndex = 0; // 0 a 11, ou 'geral'
 let currentMainTab = 'frequencia'; // 'frequencia', 'membros', 'regras'
-let filtroStatusMembro = 'todos'; // 'todos', 'ativos', 'inativos'
+let filtroStatusMembro = 'ativos'; // 'ativos', 'inativos', 'todos'
 
 // Chave do LocalStorage
 const STORAGE_KEY = 'aprisco_gestao_data_v1';
@@ -90,6 +90,7 @@ function loadState() {
       appData.membros.forEach((m, idx) => {
         if (!m.createdAt) m.createdAt = 1700000000000 + (idx * 1000);
         if (m.ativo === undefined) m.ativo = true;
+        delete m.telefone;
       });
     } catch (e) {
       console.error('Erro ao ler LocalStorage, usando dados padrão', e);
@@ -507,28 +508,55 @@ function renderMonthlyView(mIndex) {
 function renderTabelaMensal(programacoes, membrosStats, mIndex) {
   const headerRow = document.getElementById('tabelaHeaderRow');
   const tbody = document.getElementById('tabelaBody');
+  const tfoot = document.getElementById('tabelaFooter');
   const emptyNotice = document.getElementById('emptyMembrosNotice');
 
   if (membrosStats.length === 0) {
     emptyNotice.classList.remove('hidden');
     headerRow.innerHTML = '';
     tbody.innerHTML = '';
+    if (tfoot) tfoot.innerHTML = '';
     return;
   }
   emptyNotice.classList.add('hidden');
 
+  // 1. Contabilização de presenças por programação (coluna) e totais gerais
+  const contagemPorProg = {};
+  programacoes.forEach(prog => {
+    contagemPorProg[prog.id] = { p: 0, fj: 0, f: 0 };
+  });
+
+  let somaTotalP = 0;
+  let somaTotalFJ = 0;
+  let somaTotalF = 0;
+  let somaTotalPontos = 0;
+
+  membrosStats.forEach(({ regs, p, fj, f, totalPontos }) => {
+    somaTotalP += p;
+    somaTotalFJ += fj;
+    somaTotalF += f;
+    somaTotalPontos += totalPontos;
+
+    programacoes.forEach(prog => {
+      const status = regs[prog.id] || '';
+      if (status === 'P') contagemPorProg[prog.id].p++;
+      else if (status === 'FJ') contagemPorProg[prog.id].fj++;
+      else if (status === 'F') contagemPorProg[prog.id].f++;
+    });
+  });
+
   let sortIconNome = 'fa-sort text-slate-400';
-  if (appData.ordemFrequencia === 'nome_az') sortIconNome = 'fa-arrow-down-a-z text-purple-600';
-  else if (appData.ordemFrequencia === 'nome_za') sortIconNome = 'fa-arrow-up-a-z text-purple-600';
+  if (appData.ordemFrequencia === 'nome_az') sortIconNome = 'fa-arrow-down-a-z text-purple-700 font-bold';
+  else if (appData.ordemFrequencia === 'nome_za') sortIconNome = 'fa-arrow-up-a-z text-purple-700 font-bold';
 
   let sortIconPontos = 'fa-sort text-purple-400 text-[10px]';
-  if (appData.ordemFrequencia === 'pontos_desc') sortIconPontos = 'fa-arrow-down-9-1 text-purple-700';
-  else if (appData.ordemFrequencia === 'pontos_asc') sortIconPontos = 'fa-arrow-up-1-9 text-purple-700';
+  if (appData.ordemFrequencia === 'pontos_desc') sortIconPontos = 'fa-arrow-down-9-1 text-purple-900 font-bold';
+  else if (appData.ordemFrequencia === 'pontos_asc') sortIconPontos = 'fa-arrow-up-1-9 text-purple-900 font-bold';
 
   let headerHtml = `
-    <th class="py-3.5 px-4 sticky left-0 bg-slate-100 z-10 w-52 min-w-[200px] cursor-pointer hover:bg-slate-200/80 transition" onclick="alternarOrdemNomeFrequencia()" title="Clique para alternar ordem alfabética (A-Z / Z-A)">
+    <th class="py-3.5 px-4 sticky left-0 bg-slate-100 z-10 w-52 min-w-[200px] cursor-pointer hover:bg-slate-200 transition" onclick="alternarOrdemNomeFrequencia()" title="Clique para alternar ordem alfabética (A-Z / Z-A)">
       <div class="flex items-center justify-between">
-        <span>Membro</span>
+        <span class="font-bold text-slate-900">Membro</span>
         <i class="fa-solid ${sortIconNome}"></i>
       </div>
     </th>
@@ -537,12 +565,18 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
   programacoes.forEach(prog => {
     const partes = prog.data.split('-');
     const dataFormatada = partes.length === 3 ? `${partes[2]}/${partes[1]}` : prog.data;
+    const qtdP = contagemPorProg[prog.id] ? contagemPorProg[prog.id].p : 0;
 
     headerHtml += `
       <th class="py-3 px-2 text-center min-w-[85px] border-l border-slate-200 group relative">
         <div class="font-bold text-slate-800 text-xs">${dataFormatada}</div>
-        <div class="text-[10px] text-slate-400 font-normal truncate max-w-[85px]" title="${prog.descricao || 'Aprisco'}">
+        <div class="text-[10px] text-slate-400 font-normal truncate max-w-[85px] mx-auto text-center" title="${prog.descricao || 'Aprisco'}">
           ${prog.descricao || 'Aprisco'}
+        </div>
+        <div class="mt-1">
+          <span class="inline-block text-[11px] font-black bg-emerald-100 text-emerald-950 border border-emerald-400 px-2 py-0.5 rounded-md shadow-2xs" title="${qtdP} membro(s) presente(s) nesta data">
+            ${qtdP} P
+          </span>
         </div>
         <div class="mt-1 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition">
           <button onclick="marcarTodosPresentesData('${prog.id}')" title="Marcar todos como Presente nesta data" class="text-[10px] bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-1.5 py-0.5 rounded">
@@ -557,10 +591,9 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
   });
 
   headerHtml += `
-    <th class="py-3.5 px-3 text-center border-l-2 border-slate-300 bg-emerald-100 text-emerald-950 font-extrabold min-w-[48px]" title="Presenças (1 pt cada)">P</th>
-    <th class="py-3.5 px-3 text-center border-l border-slate-200 bg-orange-100 text-orange-950 font-extrabold min-w-[48px]" title="Faltas Justificadas (0.5 pt cada)">FJ</th>
-    <th class="py-3.5 px-3 text-center border-l border-slate-200 bg-rose-100 text-rose-950 font-extrabold min-w-[48px]" title="Faltas (0 pt)">F</th>
-    <th class="py-3.5 px-3 text-center border-l border-slate-200 bg-slate-200/90 text-slate-900 font-extrabold min-w-[55px]" title="Total de Presenças (P)">Tot. P</th>
+    <th class="py-3.5 px-3 text-center border-l-2 border-slate-300 bg-emerald-100 text-emerald-950 font-extrabold min-w-[48px]" title="Presenças do membro no mês (1 pt cada)">P</th>
+    <th class="py-3.5 px-3 text-center border-l border-slate-200 bg-orange-100 text-orange-950 font-extrabold min-w-[48px]" title="Faltas Justificadas do membro (0.5 pt cada)">FJ</th>
+    <th class="py-3.5 px-3 text-center border-l border-slate-200 bg-rose-100 text-rose-950 font-extrabold min-w-[48px]" title="Faltas do membro (0 pt)">F</th>
     <th class="py-3.5 px-3 text-center border-l border-slate-200 bg-purple-100 text-purple-950 font-extrabold min-w-[75px] cursor-pointer hover:bg-purple-200 transition" onclick="alternarOrdemPontosFrequencia()" title="Clique para ordenar por maior ou menor pontuação">
       <div class="flex items-center justify-center gap-1">
         <span>Pontos</span>
@@ -629,7 +662,6 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
         <td class="py-2.5 px-3 text-center border-l-2 border-slate-300 font-black text-emerald-900 bg-emerald-50/80">${p}</td>
         <td class="py-2.5 px-3 text-center border-l border-slate-200 font-black text-orange-900 bg-orange-50/80">${fj}</td>
         <td class="py-2.5 px-3 text-center border-l border-slate-200 font-black text-rose-900 bg-rose-50/80">${f}</td>
-        <td class="py-2.5 px-3 text-center border-l border-slate-200 font-bold text-slate-900 bg-slate-50">${p}</td>
         <td class="py-2.5 px-3 text-center border-l border-slate-200 font-black text-purple-950 bg-purple-50/80 text-sm">${totalPontos.toFixed(1)}</td>
         <td class="py-2.5 px-4 text-center border-l border-slate-200">
           <span class="inline-block px-3 py-1 rounded-full text-xs font-black shadow-sm ${badgeRankClass}">
@@ -641,6 +673,154 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
   });
 
   tbody.innerHTML = bodyHtml;
+
+  // 2. Renderizar Rodapé da Tabela com Contagens por Programação (P, FJ, F)
+  if (tfoot) {
+    // Linha 1: Presenças por Programação
+    let footerHtml = `
+      <tr class="bg-emerald-50/40 border-t-2 border-slate-300 text-xs font-black">
+        <td class="py-2.5 px-4 font-black text-slate-900 sticky left-0 bg-slate-100 border-r border-slate-200 shadow-sm">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-md bg-emerald-700 text-white flex items-center justify-center text-xs shrink-0 shadow-sm font-black">
+              P
+            </div>
+            <div>
+              <span class="text-xs font-black text-emerald-950 block">Presenças</span>
+              <span class="text-[10px] text-emerald-800 font-semibold">Por programação</span>
+            </div>
+          </div>
+        </td>
+    `;
+
+    programacoes.forEach(prog => {
+      const q = contagemPorProg[prog.id] ? contagemPorProg[prog.id].p : 0;
+      footerHtml += `
+        <td class="py-2 px-2 text-center border-l border-slate-200 bg-emerald-50/60">
+          <span class="inline-flex items-center justify-center min-w-[32px] h-6 px-1.5 rounded-md bg-emerald-700 text-white font-black text-xs shadow-xs" title="${q} presente(s) nesta data">
+            ${q}
+          </span>
+        </td>
+      `;
+    });
+
+    footerHtml += `
+        <td class="py-2 px-3 text-center border-l-2 border-slate-300 font-black text-emerald-950 bg-emerald-100 text-sm">${somaTotalP}</td>
+        <td class="py-2 px-3 text-center border-l border-slate-200 text-slate-300 font-bold">—</td>
+        <td class="py-2 px-3 text-center border-l border-slate-200 text-slate-300 font-bold">—</td>
+        <td class="py-2 px-3 text-center border-l border-slate-200 font-black text-purple-950 bg-purple-50 text-xs">${(somaTotalP * 1.0).toFixed(1)}</td>
+        <td class="py-2 px-4 text-center border-l border-slate-200 text-emerald-900 text-[11px] font-black uppercase">Tot. P</td>
+      </tr>
+    `;
+
+    // Linha 2: Faltas Justificadas por Programação
+    footerHtml += `
+      <tr class="bg-orange-50/40 border-t border-slate-200 text-xs font-black">
+        <td class="py-2.5 px-4 font-black text-slate-900 sticky left-0 bg-slate-100 border-r border-slate-200 shadow-sm">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-md bg-orange-600 text-white flex items-center justify-center text-xs shrink-0 shadow-sm font-black">
+              FJ
+            </div>
+            <div>
+              <span class="text-xs font-black text-orange-950 block">Justificadas</span>
+              <span class="text-[10px] text-orange-800 font-semibold">Por programação</span>
+            </div>
+          </div>
+        </td>
+    `;
+
+    programacoes.forEach(prog => {
+      const q = contagemPorProg[prog.id] ? contagemPorProg[prog.id].fj : 0;
+      footerHtml += `
+        <td class="py-2 px-2 text-center border-l border-slate-200 bg-orange-50/60">
+          <span class="inline-flex items-center justify-center min-w-[32px] h-6 px-1.5 rounded-md bg-orange-600 text-white font-black text-xs shadow-xs" title="${q} falta(s) justificada(s) nesta data">
+            ${q}
+          </span>
+        </td>
+      `;
+    });
+
+    footerHtml += `
+        <td class="py-2 px-3 text-center border-l-2 border-slate-300 text-slate-300 font-bold">—</td>
+        <td class="py-2 px-3 text-center border-l border-slate-200 font-black text-orange-950 bg-orange-100 text-sm">${somaTotalFJ}</td>
+        <td class="py-2 px-3 text-center border-l border-slate-200 text-slate-300 font-bold">—</td>
+        <td class="py-2 px-3 text-center border-l border-slate-200 font-black text-purple-950 bg-purple-50 text-xs">${(somaTotalFJ * 0.5).toFixed(1)}</td>
+        <td class="py-2 px-4 text-center border-l border-slate-200 text-orange-900 text-[11px] font-black uppercase">Tot. FJ</td>
+      </tr>
+    `;
+
+    // Linha 3: Faltas por Programação
+    footerHtml += `
+      <tr class="bg-rose-50/40 border-t border-slate-200 text-xs font-black">
+        <td class="py-2.5 px-4 font-black text-slate-900 sticky left-0 bg-slate-100 border-r border-slate-200 shadow-sm">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-md bg-rose-600 text-white flex items-center justify-center text-xs shrink-0 shadow-sm font-black">
+              F
+            </div>
+            <div>
+              <span class="text-xs font-black text-rose-950 block">Faltas</span>
+              <span class="text-[10px] text-rose-800 font-semibold">Por programação</span>
+            </div>
+          </div>
+        </td>
+    `;
+
+    programacoes.forEach(prog => {
+      const q = contagemPorProg[prog.id] ? contagemPorProg[prog.id].f : 0;
+      footerHtml += `
+        <td class="py-2 px-2 text-center border-l border-slate-200 bg-rose-50/60">
+          <span class="inline-flex items-center justify-center min-w-[32px] h-6 px-1.5 rounded-md bg-rose-600 text-white font-black text-xs shadow-xs" title="${q} falta(s) nesta data">
+            ${q}
+          </span>
+        </td>
+      `;
+    });
+
+    footerHtml += `
+        <td class="py-2 px-3 text-center border-l-2 border-slate-300 text-slate-300 font-bold">—</td>
+        <td class="py-2 px-3 text-center border-l border-slate-200 text-slate-300 font-bold">—</td>
+        <td class="py-2 px-3 text-center border-l border-slate-200 font-black text-rose-950 bg-rose-100 text-sm">${somaTotalF}</td>
+        <td class="py-2 px-3 text-center border-l border-slate-200 text-slate-400 font-bold text-xs">0.0</td>
+        <td class="py-2 px-4 text-center border-l border-slate-200 text-rose-900 text-[11px] font-black uppercase">Tot. F</td>
+      </tr>
+    `;
+
+    // Linha 4: Consolidado Geral do Mês
+    footerHtml += `
+      <tr class="bg-slate-200/90 border-t-2 border-slate-300 text-xs font-black">
+        <td class="py-2.5 px-4 font-black text-slate-900 sticky left-0 bg-slate-200 border-r border-slate-300 shadow-sm">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-md bg-purple-700 text-white flex items-center justify-center text-xs shrink-0 shadow-sm font-black">
+              <i class="fa-solid fa-calculator"></i>
+            </div>
+            <div>
+              <span class="text-xs font-black text-purple-950 block uppercase tracking-wider">Soma Total Mês</span>
+              <span class="text-[10px] text-slate-600 font-semibold">${programacoes.length} encontros</span>
+            </div>
+          </div>
+        </td>
+    `;
+
+    programacoes.forEach(prog => {
+      const q = contagemPorProg[prog.id];
+      const tot = (q ? q.p : 0) + (q ? q.fj : 0) + (q ? q.f : 0);
+      footerHtml += `
+        <td class="py-2 px-2 text-center border-l border-slate-300 text-slate-600 font-extrabold text-[11px]" title="${tot} registros totais nesta data">
+          ${tot} reg.
+        </td>
+      `;
+    });
+
+    footerHtml += `
+        <td class="py-2 px-3 text-center border-l-2 border-slate-300 font-black text-emerald-950 bg-emerald-100 text-sm">${somaTotalP}</td>
+        <td class="py-2 px-3 text-center border-l border-slate-200 font-black text-orange-950 bg-orange-100 text-sm">${somaTotalFJ}</td>
+        <td class="py-2 px-3 text-center border-l border-slate-200 font-black text-rose-950 bg-rose-100 text-sm">${somaTotalF}</td>
+        <td class="py-2 px-3 text-center border-l border-slate-200 font-black text-purple-950 bg-purple-100 text-sm">${somaTotalPontos.toFixed(1)}</td>
+        <td class="py-2 px-4 text-center border-l border-slate-200 text-slate-800 text-[11px] font-black uppercase">Consolidado</td>
+      </tr>
+    `;
+
+    tfoot.innerHTML = footerHtml;
+  }
 }
 
 function toggleStatusPresenca(membroId, progId) {
@@ -806,12 +986,14 @@ function renderGeralView() {
 function renderTabelaGeral(membrosGeralStats, totalProgramacoesAno) {
   const headerRow = document.getElementById('tabelaHeaderRow');
   const tbody = document.getElementById('tabelaBody');
+  const tfoot = document.getElementById('tabelaFooter');
   const emptyNotice = document.getElementById('emptyMembrosNotice');
 
   if (membrosGeralStats.length === 0) {
     emptyNotice.classList.remove('hidden');
     headerRow.innerHTML = '';
     tbody.innerHTML = '';
+    if (tfoot) tfoot.innerHTML = '';
     return;
   }
   emptyNotice.classList.add('hidden');
@@ -890,6 +1072,38 @@ function renderTabelaGeral(membrosGeralStats, totalProgramacoesAno) {
   });
 
   tbody.innerHTML = bodyHtml;
+
+  if (tfoot) {
+    let somaP = 0, somaFJ = 0, somaF = 0, somaPts = 0;
+    membrosGeralStats.forEach(({ p, fj, f, totalPontos }) => {
+      somaP += p;
+      somaFJ += fj;
+      somaF += f;
+      somaPts += totalPontos;
+    });
+
+    tfoot.innerHTML = `
+      <tr class="bg-slate-100 border-t-2 border-slate-300 text-xs font-black">
+        <td class="py-3 px-4 font-black text-slate-900 sticky left-0 bg-slate-100 border-r border-slate-200 shadow-sm">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-purple-700 text-white flex items-center justify-center text-xs shrink-0 shadow-sm">
+              <i class="fa-solid fa-chart-pie"></i>
+            </div>
+            <div>
+              <span class="text-xs font-black text-slate-900 block uppercase tracking-wider">Total Consolidado</span>
+              <span class="text-[10px] text-purple-800 font-bold">Todos os Membros</span>
+            </div>
+          </div>
+        </td>
+        <td class="py-3 px-3 text-center border-l border-slate-200 font-black text-emerald-950 bg-emerald-100 text-sm">${somaP}</td>
+        <td class="py-3 px-3 text-center border-l border-slate-200 font-black text-orange-950 bg-orange-100 text-sm">${somaFJ}</td>
+        <td class="py-3 px-3 text-center border-l border-slate-200 font-black text-rose-950 bg-rose-100 text-sm">${somaF}</td>
+        <td class="py-3 px-3 text-center border-l border-slate-200 font-black text-purple-950 bg-purple-100 text-base">${somaPts.toFixed(1)}</td>
+        <td class="py-3 px-4 text-center border-l border-slate-200 text-slate-700 font-bold">${totalProgramacoesAno > 0 ? (somaP / totalProgramacoesAno).toFixed(1) : '0'} média/encontro</td>
+        <td class="py-3 px-4 text-center border-l border-slate-200 text-slate-600 text-[11px] font-bold">Consolidado Ano</td>
+      </tr>
+    `;
+  }
 }
 
 // ====================================================================
@@ -933,6 +1147,25 @@ function renderMembrosView() {
   document.getElementById('countMembrosAtivos').textContent = totalAtivos;
   document.getElementById('countMembrosInativos').textContent = totalInativos;
 
+  // Atualizar visual dos botões de filtro
+  const btnTodos = document.getElementById('filterMembrosTodos');
+  const btnAtivos = document.getElementById('filterMembrosAtivos');
+  const btnInativos = document.getElementById('filterMembrosInativos');
+
+  if (btnTodos && btnAtivos && btnInativos) {
+    [btnTodos, btnAtivos, btnInativos].forEach(b => {
+      b.className = 'px-3 py-1.5 rounded-lg transition text-slate-600 hover:text-slate-900';
+    });
+
+    if (filtroStatusMembro === 'ativos') {
+      btnAtivos.className = 'px-3 py-1.5 rounded-lg transition bg-white text-emerald-700 shadow-sm font-bold';
+    } else if (filtroStatusMembro === 'inativos') {
+      btnInativos.className = 'px-3 py-1.5 rounded-lg transition bg-white text-amber-800 shadow-sm font-bold';
+    } else {
+      btnTodos.className = 'px-3 py-1.5 rounded-lg transition bg-white text-purple-700 shadow-sm font-bold';
+    }
+  }
+
   // Atualizar ícones de ordenação na tabela
   const iconNome = document.getElementById('sortIconNome');
   if (iconNome) {
@@ -951,7 +1184,6 @@ function renderMembrosView() {
   // Filtrar por busca e por status
   let lista = appData.membros.filter(m => {
     const matchBusca = m.nome.toLowerCase().includes(query) ||
-      (m.telefone && m.telefone.includes(query)) ||
       (m.funcao && m.funcao.toLowerCase().includes(query));
 
     if (!matchBusca) return false;
@@ -994,7 +1226,6 @@ function renderMembrosView() {
             </div>
           </div>
         </td>
-        <td class="py-3.5 px-4 text-slate-600">${membro.telefone || '—'}</td>
         <td class="py-3.5 px-4 text-slate-600">${nascFormatada}</td>
         <td class="py-3.5 px-4">
           <span class="bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-lg font-medium">
@@ -1049,7 +1280,6 @@ function editarMembro(id) {
 
   document.getElementById('inputMembroId').value = membro.id;
   document.getElementById('inputNomeMembro').value = membro.nome || '';
-  document.getElementById('inputTelefoneMembro').value = membro.telefone || '';
   document.getElementById('inputNascMembro').value = membro.nascimento || '';
   document.getElementById('inputFuncaoMembro').value = membro.funcao || '';
   document.getElementById('inputObsMembro').value = membro.obs || '';
@@ -1141,7 +1371,6 @@ document.getElementById('formMembro').addEventListener('submit', (e) => {
   e.preventDefault();
   const id = document.getElementById('inputMembroId').value;
   const nome = document.getElementById('inputNomeMembro').value.trim();
-  const telefone = document.getElementById('inputTelefoneMembro').value.trim();
   const nascimento = document.getElementById('inputNascMembro').value;
   const funcao = document.getElementById('inputFuncaoMembro').value.trim();
   const obs = document.getElementById('inputObsMembro').value.trim();
@@ -1154,11 +1383,11 @@ document.getElementById('formMembro').addEventListener('submit', (e) => {
       appData.membros[index] = {
         ...appData.membros[index],
         nome,
-        telefone,
         nascimento,
         funcao,
         obs
       };
+      delete appData.membros[index].telefone;
       showToast('Dados do membro atualizados!');
     }
   } else {
@@ -1166,7 +1395,6 @@ document.getElementById('formMembro').addEventListener('submit', (e) => {
     appData.membros.push({
       id: novoId,
       nome,
-      telefone,
       nascimento,
       funcao,
       obs,
