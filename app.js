@@ -126,11 +126,13 @@ function getMonthData(mIndex) {
   if (!yearData.meses[mKey]) {
     yearData.meses[mKey] = {
       programacoes: [],
-      frequencias: {}
+      frequencias: {},
+      convidados: []
     };
   }
   if (!yearData.meses[mKey].programacoes) yearData.meses[mKey].programacoes = [];
   if (!yearData.meses[mKey].frequencias) yearData.meses[mKey].frequencias = {};
+  if (!yearData.meses[mKey].convidados) yearData.meses[mKey].convidados = [];
   return yearData.meses[mKey];
 }
 
@@ -521,6 +523,9 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
   emptyNotice.classList.add('hidden');
 
   // 1. Contabilização de presenças por programação (coluna) e totais gerais
+  const mData = getMonthData(mIndex);
+  const convidados = mData.convidados || [];
+
   const contagemPorProg = {};
   programacoes.forEach(prog => {
     contagemPorProg[prog.id] = { p: 0, fj: 0, f: 0 };
@@ -542,6 +547,17 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
       if (status === 'P') contagemPorProg[prog.id].p++;
       else if (status === 'FJ') contagemPorProg[prog.id].fj++;
       else if (status === 'F') contagemPorProg[prog.id].f++;
+    });
+  });
+
+  // Somar presenças dos convidados por programação (sem somar FJ ou F)
+  let somaPresencasConvidados = 0;
+  convidados.forEach(conv => {
+    programacoes.forEach(prog => {
+      if (conv.presencas && conv.presencas[prog.id]) {
+        contagemPorProg[prog.id].p++;
+        somaPresencasConvidados++;
+      }
     });
   });
 
@@ -672,10 +688,71 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
     `;
   });
 
+  // Se houver convidados registrados neste mês, renderizar seção dedicada de convidados
+  if (convidados.length > 0) {
+    
+    convidados.forEach((conv, idx) => {
+      let presencasConvidado = 0;
+
+      bodyHtml += `
+        <tr class="hover:bg-teal-50/40 transition bg-teal-50/20" ${idx === 0 ? 'style="border-top: 2px solid #c887f3;"' : ''}>
+          <td class="py-2.5 px-4 font-semibold text-slate-800 sticky left-0 bg-white hover:bg-teal-50/40 transition border-r border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <div class="w-7 h-7 rounded-full bg-teal-100 text-teal-800 border border-teal-300 font-black text-xs flex items-center justify-center shrink-0">
+                  ${conv.nome.charAt(0).toUpperCase()}
+                </div>
+                <div class="truncate max-w-[130px]">
+                  <span class="text-sm block font-bold text-slate-900 truncate" title="${conv.nome}">${conv.nome}</span>
+                  <span class="text-[10px] text-teal-700 font-bold flex items-center gap-1">
+                    <i class="fa-solid fa-user-tag text-[9px]"></i> Convidado
+                  </span>
+                </div>
+              </div>
+              <button onclick="removerConvidado('${conv.id}')" title="Remover convidado deste mês" class="text-slate-400 hover:text-rose-600 transition p-1 text-xs">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </td>
+      `;
+
+      programacoes.forEach(prog => {
+        const isPresente = !!(conv.presencas && conv.presencas[prog.id]);
+        if (isPresente) presencasConvidado++;
+
+        bodyHtml += `
+          <td class="py-2.5 px-2 text-center border-l border-slate-200">
+            <div 
+              class="attendance-cell inline-flex items-center justify-center w-8 h-8 rounded-lg font-black text-xs ${isPresente ? 'badge-p' : 'badge-empty'}"
+              onclick="togglePresencaConvidado('${conv.id}', '${prog.id}')"
+              title="Clique para alternar presença do convidado nesta data">
+              ${isPresente ? 'P' : '—'}
+            </div>
+          </td>
+        `;
+      });
+
+      bodyHtml += `
+          <td class="py-2.5 px-3 text-center border-l-2 border-slate-300 font-black text-emerald-900 bg-emerald-50/80">${presencasConvidado}</td>
+          <td class="py-2.5 px-3 text-center border-l border-slate-200 font-bold text-slate-300">—</td>
+          <td class="py-2.5 px-3 text-center border-l border-slate-200 font-bold text-slate-300">—</td>
+          <td class="py-2.5 px-3 text-center border-l border-slate-200 font-bold text-slate-300">—</td>
+          <td class="py-2.5 px-4 text-center border-l border-slate-200">
+            <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-black bg-teal-100 text-teal-800 border border-teal-300">
+              Convidado
+            </span>
+          </td>
+        </tr>
+      `;
+    });
+  }
+
   tbody.innerHTML = bodyHtml;
 
   // 2. Renderizar Rodapé da Tabela com Contagens por Programação (P, FJ, F)
   if (tfoot) {
+    const totalPresencasMesComConvidados = somaTotalP + somaPresencasConvidados;
+
     // Linha 1: Presenças por Programação
     let footerHtml = `
       <tr class="bg-emerald-50/40 border-t-2 border-slate-300 text-xs font-black">
@@ -696,7 +773,7 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
       const q = contagemPorProg[prog.id] ? contagemPorProg[prog.id].p : 0;
       footerHtml += `
         <td class="py-2 px-2 text-center border-l border-slate-200 bg-emerald-50/60">
-          <span class="inline-flex items-center justify-center min-w-[32px] h-6 px-1.5 rounded-md bg-emerald-700 text-white font-black text-xs shadow-xs" title="${q} presente(s) nesta data">
+          <span class="inline-flex items-center justify-center min-w-[32px] h-6 px-1.5 rounded-md bg-emerald-700 text-white font-black text-xs shadow-xs" title="${q} presente(s) nesta data (inclui convidados)">
             ${q}
           </span>
         </td>
@@ -704,7 +781,7 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
     });
 
     footerHtml += `
-        <td class="py-2 px-3 text-center border-l-2 border-slate-300 font-black text-emerald-950 bg-emerald-100 text-sm">${somaTotalP}</td>
+        <td class="py-2 px-3 text-center border-l-2 border-slate-300 font-black text-emerald-950 bg-emerald-100 text-sm" title="${somaTotalP} de membros + ${somaPresencasConvidados} de convidados">${totalPresencasMesComConvidados}</td>
         <td class="py-2 px-3 text-center border-l border-slate-200 text-slate-300 font-bold">—</td>
         <td class="py-2 px-3 text-center border-l border-slate-200 text-slate-300 font-bold">—</td>
         <td class="py-2 px-3 text-center border-l border-slate-200 font-black text-purple-950 bg-purple-50 text-xs">${(somaTotalP * 1.0).toFixed(1)}</td>
@@ -811,7 +888,7 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
     });
 
     footerHtml += `
-        <td class="py-2 px-3 text-center border-l-2 border-slate-300 font-black text-emerald-950 bg-emerald-100 text-sm">${somaTotalP}</td>
+        <td class="py-2 px-3 text-center border-l-2 border-slate-300 font-black text-emerald-950 bg-emerald-100 text-sm" title="${somaTotalP} de membros + ${somaPresencasConvidados} de convidados">${totalPresencasMesComConvidados}</td>
         <td class="py-2 px-3 text-center border-l border-slate-200 font-black text-orange-950 bg-orange-100 text-sm">${somaTotalFJ}</td>
         <td class="py-2 px-3 text-center border-l border-slate-200 font-black text-rose-950 bg-rose-100 text-sm">${somaTotalF}</td>
         <td class="py-2 px-3 text-center border-l border-slate-200 font-black text-purple-950 bg-purple-100 text-sm">${somaTotalPontos.toFixed(1)}</td>
@@ -864,9 +941,95 @@ function removerProgramacao(progId) {
     delete mData.frequencias[mId][progId];
   });
 
+  if (mData.convidados) {
+    mData.convidados.forEach(c => {
+      if (c.presencas) delete c.presencas[progId];
+    });
+  }
+
   saveState();
   renderApp();
   showToast('Programação removida com sucesso!');
+}
+
+// ====================================================================
+// GESTÃO DE CONVIDADOS NO MÊS (SEM IMPACTO NO GERAL E SEM GERAR FALTAS)
+// ====================================================================
+
+function abrirModalConvidado() {
+  if (currentMonthIndex === 'geral') {
+    showToast('Convidados são gerenciados por mês individual.', 'aviso');
+    return;
+  }
+
+  const mData = getMonthData(currentMonthIndex);
+  const container = document.getElementById('listaProgramacoesConvidado');
+  const inputNome = document.getElementById('inputNomeConvidado');
+  if (inputNome) inputNome.value = '';
+
+  if (!mData.programacoes || mData.programacoes.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-4 text-slate-500">
+        <i class="fa-solid fa-calendar-xmark text-2xl text-slate-400 mb-1 block"></i>
+        <p class="font-semibold text-xs text-slate-700">Nenhuma programação cadastrada neste mês.</p>
+        <p class="text-[11px] text-slate-400 mt-0.5">Cadastre uma programação antes de adicionar convidados.</p>
+      </div>
+    `;
+  } else {
+    let progsHtml = '';
+    mData.programacoes.forEach(prog => {
+      const partes = prog.data.split('-');
+      const dataFormatada = partes.length === 3 ? `${partes[2]}/${partes[1]}` : prog.data;
+
+      progsHtml += `
+        <label class="group flex items-center gap-3 p-2.5 rounded-xl bg-white border-2 border-slate-200 hover:border-teal-300 has-[:checked]:border-teal-600 has-[:checked]:bg-teal-50 cursor-pointer transition select-none">
+          <input type="checkbox" name="progConvidado" value="${prog.id}" class="sr-only">
+          <span class="w-5 h-5 rounded-full border-2 border-slate-300 flex items-center justify-center shrink-0 transition group-has-[:checked]:bg-teal-600 group-has-[:checked]:border-teal-600">
+            <i class="fa-solid fa-check text-[10px] text-white opacity-0 group-has-[:checked]:opacity-100"></i>
+          </span>
+          <div class="flex-1 min-w-0">
+            <span class="font-bold text-slate-800 text-xs">${dataFormatada}</span>
+            <span class="text-slate-500 text-[11px] truncate block">${prog.descricao || 'Aprisco'}</span>
+          </div>
+          <span class="hidden group-has-[:checked]:inline-block text-[10px] bg-teal-100 text-teal-800 font-bold px-1.5 py-0.5 rounded">Presente</span>
+        </label>
+      `;
+    });
+    container.innerHTML = progsHtml;
+  }
+
+  openModal('modalConvidado');
+}
+
+function togglePresencaConvidado(convId, progId) {
+  if (currentMonthIndex === 'geral') return;
+  const mData = getMonthData(currentMonthIndex);
+  if (!mData.convidados) return;
+
+  const conv = mData.convidados.find(c => c.id === convId);
+  if (!conv) return;
+
+  if (!conv.presencas) conv.presencas = {};
+  conv.presencas[progId] = !conv.presencas[progId];
+
+  saveState();
+  renderApp();
+}
+
+function removerConvidado(convId) {
+  if (currentMonthIndex === 'geral') return;
+  const mData = getMonthData(currentMonthIndex);
+  if (!mData.convidados) return;
+
+  const conv = mData.convidados.find(c => c.id === convId);
+  const nome = conv ? conv.nome : 'o convidado';
+
+  if (!confirm(`Deseja remover "${nome}" da lista de convidados deste mês?`)) return;
+
+  mData.convidados = mData.convidados.filter(c => c.id !== convId);
+  saveState();
+  renderApp();
+  showToast(`Convidado "${nome}" removido com sucesso!`);
 }
 
 // ====================================================================
@@ -1452,6 +1615,42 @@ document.getElementById('formData').addEventListener('submit', (e) => {
   showToast('Nova programação adicionada!');
 });
 
+// Listener: Salvar Convidado
+const formConvidadoEl = document.getElementById('formConvidado');
+if (formConvidadoEl) {
+  formConvidadoEl.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (currentMonthIndex === 'geral') return;
+
+    const nome = document.getElementById('inputNomeConvidado').value.trim();
+    if (!nome) {
+      showToast('Por favor, informe o nome do convidado.', 'aviso');
+      return;
+    }
+
+    const checkboxes = document.querySelectorAll('#listaProgramacoesConvidado input[name="progConvidado"]:checked');
+    const presencas = {};
+    checkboxes.forEach(cb => {
+      presencas[cb.value] = true;
+    });
+
+    const mData = getMonthData(currentMonthIndex);
+    if (!mData.convidados) mData.convidados = [];
+
+    mData.convidados.push({
+      id: 'conv_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      nome: nome,
+      presencas: presencas,
+      dataCriacao: new Date().toISOString()
+    });
+
+    saveState();
+    closeModal('modalConvidado');
+    renderApp();
+    showToast(`Convidado "${nome}" adicionado com sucesso!`);
+  });
+}
+
 document.getElementById('btnFastFillPresent').addEventListener('click', () => {
   if (currentMonthIndex === 'geral') return;
   const mData = getMonthData(currentMonthIndex);
@@ -1630,7 +1829,7 @@ function closeModal(modalId) {
 }
 
 window.addEventListener('click', (e) => {
-  ['modalMembro', 'modalData', 'modalNomeAprisco', 'modalDesligarMembro'].forEach(id => {
+  ['modalMembro', 'modalData', 'modalNomeAprisco', 'modalDesligarMembro', 'modalConvidado'].forEach(id => {
     const el = document.getElementById(id);
     if (el && e.target === el) {
       closeModal(id);
