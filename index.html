@@ -45,8 +45,14 @@
         </div>
       </div>
 
-      <!-- Ações rápidas no Header: Ano, Backup, Exportar -->
+      <!-- Ações rápidas no Header: Nuvem, Ano, Backup, Exportar -->
       <div class="flex items-center flex-wrap gap-2.5">
+        <!-- Indicador de Status da Nuvem Firebase -->
+        <div id="cloudSyncBadge" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-semibold" title="Sincronização em tempo real com o banco de dados Firebase">
+          <i id="cloudSyncIcon" class="fa-solid fa-cloud text-xs"></i>
+          <span id="cloudSyncText">Nuvem Conectada</span>
+        </div>
+
         <div class="flex items-center bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/15 text-sm">
           <label for="anoSelect" class="text-xs text-indigo-200 mr-2 font-medium">Ano:</label>
           <div class="relative">
@@ -227,26 +233,30 @@
       <!-- ============================================================== -->
       <div class="bg-white p-2.5 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-2.5">
         <!-- Pílulas dos Meses e Geral -->
-        <div class="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 scrollbar-thin">
-          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="0">Jan</button>
-          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="1">Fev</button>
-          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="2">Mar</button>
-          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="3">Abr</button>
-          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="4">Mai</button>
-          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="5">Jun</button>
-          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="6">Jul</button>
-          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="7">Ago</button>
-          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="8">Set</button>
-          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="9">Out</button>
-          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="10">Nov</button>
-          <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="11">Dez</button>
-          
-          <div class="h-5 w-[1px] bg-slate-200 mx-1"></div>
-          
-          <button id="pillGeral" class="month-pill px-3.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100" data-month="geral">
-            <i class="fa-solid fa-chart-pie"></i>
-            <span>GERAL</span>
-          </button>
+        <div class="flex items-center min-w-0 flex-1">
+          <!-- Botão GERAL Fixo à esquerda (na frente de Janeiro) -->
+          <div class="shrink-0 flex items-center pr-2 border-r-2 border-slate-200 mr-2 z-10 bg-white">
+            <button id="pillGeral" class="month-pill px-3.5 py-1.5 rounded-lg text-xs font-black transition whitespace-nowrap flex items-center gap-1.5 shadow-2xs" data-month="geral">
+              <i class="fa-solid fa-chart-pie"></i>
+              <span>GERAL</span>
+            </button>
+          </div>
+
+          <!-- Container dos Meses com Rolagem Horizontal (Janeiro a Dezembro) -->
+          <div class="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 scrollbar-thin flex-1">
+            <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="0">Jan</button>
+            <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="1">Fev</button>
+            <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="2">Mar</button>
+            <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="3">Abr</button>
+            <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="4">Mai</button>
+            <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="5">Jun</button>
+            <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="6">Jul</button>
+            <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="7">Ago</button>
+            <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="8">Set</button>
+            <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="9">Out</button>
+            <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="10">Nov</button>
+            <button class="month-pill px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap" data-month="11">Dez</button>
+          </div>
         </div>
 
         <!-- Título do Período e Botões de Ação -->
@@ -622,6 +632,46 @@
           </div>
         </div>
 
+        <!-- Mês e Ano de Entrada no Aprisco -->
+        <div class="p-3 bg-purple-50/70 rounded-xl border border-purple-200 space-y-2">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="selectMesEntrada" class="block text-xs font-bold text-purple-950 mb-1 flex items-center gap-1">
+                <i class="fa-solid fa-calendar-check text-purple-600"></i> Mês de Entrada *
+              </label>
+              <select id="selectMesEntrada" class="w-full px-3 py-2 text-xs font-semibold bg-white border border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <option value="0">Janeiro</option>
+                <option value="1">Fevereiro</option>
+                <option value="2">Março</option>
+                <option value="3">Abril</option>
+                <option value="4">Maio</option>
+                <option value="5">Junho</option>
+                <option value="6">Julho</option>
+                <option value="7">Agosto</option>
+                <option value="8">Setembro</option>
+                <option value="9">Outubro</option>
+                <option value="10">Novembro</option>
+                <option value="11">Dezembro</option>
+              </select>
+            </div>
+            <div>
+              <label for="selectAnoEntrada" class="block text-xs font-bold text-purple-950 mb-1 flex items-center gap-1">
+                <i class="fa-solid fa-calendar text-purple-600"></i> Ano de Entrada *
+              </label>
+              <select id="selectAnoEntrada" class="w-full px-3 py-2 text-xs font-semibold bg-white border border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+                <option value="2026" selected>2026</option>
+                <option value="2027">2027</option>
+              </select>
+            </div>
+          </div>
+          <p class="text-[11px] text-purple-900 leading-snug">
+            <i class="fa-solid fa-circle-info text-purple-600 mr-0.5"></i>
+            Nos meses anteriores ao de entrada, o membro receberá automaticamente a <strong>metade dos pontos do mês (50%)</strong> sem gerar faltas.
+          </p>
+        </div>
+
         <div>
           <label for="inputObsMembro" class="block text-xs font-semibold text-slate-700 mb-1">Observações</label>
           <textarea id="inputObsMembro" rows="2" placeholder="Informações adicionais..." class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"></textarea>
@@ -817,9 +867,12 @@
   </div>
 
   <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
-    Sistema de Frequência do Aprisco &copy; <span id="currentYearFooter">2026</span> &bull; Dados salvos automaticamente no navegador
+    Sistema de Frequência do Aprisco &copy; <span id="currentYearFooter">2026</span> &bull; Sincronizado na nuvem (Firebase) e salvo localmente
   </footer>
 
+  <!-- Firebase SDKs (Compat v10) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

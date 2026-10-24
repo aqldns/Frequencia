@@ -70,6 +70,140 @@ let currentMonthIndex = 0; // 0 a 11, ou 'geral'
 let currentMainTab = 'frequencia'; // 'frequencia', 'membros', 'regras'
 let filtroStatusMembro = 'ativos'; // 'ativos', 'inativos', 'todos'
 
+// ====================================================================
+// CONFIGURAÇÃO DO FIREBASE (FIRESTORE DATABASE & NUVEM EM TEMPO REAL)
+// ====================================================================
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBJgiCl6YHH_iAtqecYyP1tQwRyDCjeEgw",
+  authDomain: "frequencia-aprisco.firebaseapp.com",
+  projectId: "frequencia-aprisco",
+  storageBucket: "frequencia-aprisco.firebasestorage.app",
+  messagingSenderId: "23446034382",
+  appId: "1:23446034382:web:44d6a2d0d188ac727f3d9f",
+  measurementId: "G-SWGFNCXYXW"
+};
+
+let db = null;
+let isSavingToCloud = false;
+
+function getFirestoreDocRef() {
+  if (!db) return null;
+  // Se estiver rodando localmente (localhost ou file://), usa documento de testes local
+  // Isso garante que os testes no seu computador NÃO alterem o banco de dados oficial do site online!
+  const isLocal = window.location.hostname === 'localhost' ||
+                  window.location.hostname === '127.0.0.1' ||
+                  window.location.protocol === 'file:';
+
+  const docId = isLocal ? 'dados_localhost_teste' : 'dados_principais';
+  return db.collection('aprisco').doc(docId);
+}
+
+function initFirebase() {
+  if (typeof firebase === 'undefined') {
+    console.warn('SDK do Firebase não detectado.');
+    updateCloudStatus('offline', 'Modo Offline (Local)');
+    return;
+  }
+
+  try {
+    if (!firebase.apps || !firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    db = firebase.firestore();
+
+    const isLocal = window.location.hostname === 'localhost' ||
+                    window.location.hostname === '127.0.0.1' ||
+                    window.location.protocol === 'file:';
+
+    updateCloudStatus('syncing', isLocal ? 'Conectando (Ambiente Local)...' : 'Conectando à nuvem...');
+
+    const docRef = getFirestoreDocRef();
+    if (!docRef) return;
+
+    docRef.onSnapshot((doc) => {
+      if (doc.exists) {
+        const cloudData = doc.data();
+        if (cloudData && cloudData.anos) {
+          if (!isSavingToCloud) {
+            appData = cloudData;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+            renderApp();
+          }
+        }
+        updateCloudStatus('online', isLocal ? 'Localhost (Teste Isolado)' : 'Nuvem Conectada');
+      } else {
+        console.log('Primeira inicialização: salvando dados locais no Firestore...');
+        salvarDadosNoFirestore(true);
+      }
+    }, (error) => {
+      console.warn('Erro ao escutar Firestore:', error);
+      updateCloudStatus('offline', 'Modo Offline (Local)');
+    });
+  } catch (e) {
+    console.error('Erro ao inicializar Firebase:', e);
+    updateCloudStatus('offline', 'Modo Offline (Local)');
+  }
+}
+
+function updateCloudStatus(status, text) {
+  const badge = document.getElementById('cloudSyncBadge');
+  const icon = document.getElementById('cloudSyncIcon');
+  const textEl = document.getElementById('cloudSyncText');
+  if (!badge || !icon || !textEl) return;
+
+  if (status === 'online') {
+    badge.className = 'hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-semibold';
+    icon.className = 'fa-solid fa-cloud-check text-xs text-emerald-300';
+    textEl.textContent = text || 'Nuvem Conectada';
+  } else if (status === 'syncing') {
+    badge.className = 'hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-400/30 text-xs font-semibold';
+    icon.className = 'fa-solid fa-cloud-arrow-up text-xs animate-pulse text-amber-300';
+    textEl.textContent = text || 'Sincronizando...';
+  } else {
+    badge.className = 'hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-500/20 text-slate-300 border border-slate-400/30 text-xs font-semibold';
+    icon.className = 'fa-solid fa-cloud text-xs text-slate-300';
+    textEl.textContent = text || 'Modo Offline';
+  }
+}
+
+let syncTimeout = null;
+function salvarDadosNoFirestore(imediato = false) {
+  if (!db) return;
+
+  const isLocal = window.location.hostname === 'localhost' ||
+                  window.location.hostname === '127.0.0.1' ||
+                  window.location.protocol === 'file:';
+
+  updateCloudStatus('syncing', 'Salvando...');
+  isSavingToCloud = true;
+
+  const executarSalvar = () => {
+    const docRef = getFirestoreDocRef();
+    if (!docRef) return;
+    const payload = JSON.parse(JSON.stringify(appData));
+
+    docRef.set(payload)
+      .then(() => {
+        isSavingToCloud = false;
+        updateCloudStatus('online', isLocal ? 'Localhost (Teste Isolado)' : 'Nuvem Conectada');
+      })
+      .catch((err) => {
+        console.error('Erro ao salvar no Firestore:', err);
+        isSavingToCloud = false;
+        updateCloudStatus('offline', 'Salvo apenas Localmente');
+      });
+  };
+
+  if (imediato) {
+    if (syncTimeout) clearTimeout(syncTimeout);
+    executarSalvar();
+  } else {
+    if (syncTimeout) clearTimeout(syncTimeout);
+    syncTimeout = setTimeout(executarSalvar, 600);
+  }
+}
+
 // Chave do LocalStorage
 const STORAGE_KEY = 'aprisco_gestao_data_v1';
 
@@ -90,6 +224,8 @@ function loadState() {
       appData.membros.forEach((m, idx) => {
         if (!m.createdAt) m.createdAt = 1700000000000 + (idx * 1000);
         if (m.ativo === undefined) m.ativo = true;
+        if (m.mesEntrada === undefined) m.mesEntrada = 0;
+        if (!m.anoEntrada) m.anoEntrada = '2026';
         delete m.telefone;
       });
     } catch (e) {
@@ -102,9 +238,10 @@ function loadState() {
   }
 }
 
-// Salvar dados no LocalStorage
+// Salvar dados no LocalStorage e na Nuvem Firestore
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+  salvarDadosNoFirestore();
 }
 
 // Helper: Retorna o objeto do ano atual
@@ -141,20 +278,40 @@ function getMonthData(mIndex) {
 // ====================================================================
 
 /**
+ * Verifica se o mês/ano especificado é anterior ao mês/ano de entrada do membro no Aprisco.
+ * Nesses meses anteriores, o membro recebe a metade dos pontos do mês (50%) sem gerar faltas.
+ */
+function isMesAnteriorEntrada(membro, ano, mesIndex) {
+  const anoEntrada = parseInt(membro.anoEntrada !== undefined ? membro.anoEntrada : ano, 10);
+  const mesEntrada = parseInt(membro.mesEntrada !== undefined ? membro.mesEntrada : 0, 10);
+
+  const periodoEntrada = (anoEntrada * 12) + mesEntrada;
+  const periodoMes = (parseInt(ano, 10) * 12) + parseInt(mesIndex, 10);
+
+  return periodoMes < periodoEntrada;
+}
+
+/**
  * Verifica se o membro estava ativo em um determinado mês e ano.
  * Regra:
- * - Se m.ativo !== false: ativo sempre.
+ * - Se ano < anoEntrada: não participa daquele ano.
+ * - Se m.ativo !== false: ativo sempre após a entrada.
  * - Se m.ativo === false: ativo até o mês/ano de saída (inclusive).
  *   A partir do mês seguinte à saída, retorna false.
  */
 function isMembroAtivoNoMes(membro, ano, mesIndex) {
+  const anoEntrada = parseInt(membro.anoEntrada !== undefined ? membro.anoEntrada : ano, 10);
+  const anoAlvo = parseInt(ano, 10);
+
+  if (anoAlvo < anoEntrada) return false;
+
   if (membro.ativo !== false) return true;
 
   const anoSaida = parseInt(membro.anoSaida !== undefined ? membro.anoSaida : ano, 10);
   const mesSaida = parseInt(membro.mesSaida !== undefined ? membro.mesSaida : 11, 10);
 
   const periodoSaida = (anoSaida * 12) + mesSaida;
-  const periodoMes = (parseInt(ano, 10) * 12) + parseInt(mesIndex, 10);
+  const periodoMes = (anoAlvo * 12) + parseInt(mesIndex, 10);
 
   return periodoMes <= periodoSaida;
 }
@@ -448,13 +605,28 @@ function renderMonthlyView(mIndex) {
   let countRuins = 0;
 
   const membrosStats = membrosDoMes.map(membro => {
+    const isAnterior = isMesAnteriorEntrada(membro, appData.anoAtual, mIndex);
+    let pts;
     const regs = mData.frequencias[membro.id] || {};
-    const pts = calcularPontosPessoa(regs);
-    const classif = classificarMembro(pts.totalPontos, totalProgramacoes);
 
-    totalPresencasMes += pts.p;
-    totalFaltasJustMes += pts.fj;
-    totalFaltasMes += pts.f;
+    if (isAnterior) {
+      // Entrou após este mês: recebe metade dos pontos do mês (totalProgramacoes / 2) sem gerar faltas
+      const pontosEntrada = totalProgramacoes > 0 ? (totalProgramacoes / 2) : 0;
+      pts = {
+        p: 0,
+        fj: 0,
+        f: 0,
+        totalPontos: pontosEntrada,
+        isMesAnterior: true
+      };
+    } else {
+      pts = calcularPontosPessoa(regs);
+      totalPresencasMes += pts.p;
+      totalFaltasJustMes += pts.fj;
+      totalFaltasMes += pts.f;
+    }
+
+    const classif = classificarMembro(pts.totalPontos, totalProgramacoes);
 
     if (totalProgramacoes > 0) {
       if (classif.classKey === 'otimo') countOtimos++;
@@ -467,7 +639,8 @@ function renderMonthlyView(mIndex) {
       membro,
       regs,
       ...pts,
-      classif
+      classif,
+      isMesAnterior: !!isAnterior
     };
   });
 
@@ -623,8 +796,9 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
 
   let bodyHtml = '';
 
-  membrosStats.forEach(({ membro, regs, p, fj, f, totalPontos, classif }) => {
+  membrosStats.forEach(({ membro, regs, p, fj, f, totalPontos, classif, isMesAnterior }) => {
     const isDesligado = membro.ativo === false;
+    const mesEntradaNum = membro.mesEntrada !== undefined ? membro.mesEntrada : 0;
 
     bodyHtml += `
       <tr class="hover:bg-slate-50 transition ${isDesligado ? 'bg-slate-100/70' : ''}">
@@ -635,9 +809,10 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
             </div>
             <div class="truncate max-w-[150px]">
               <span class="text-sm block font-bold ${isDesligado ? 'text-slate-500' : 'text-slate-900'}">${membro.nome}</span>
-              <div class="flex items-center gap-1 text-[10px]">
+              <div class="flex items-center gap-1 text-[10px] flex-wrap">
                 ${membro.funcao ? `<span class="text-slate-500 font-medium">${membro.funcao}</span>` : ''}
                 ${isDesligado ? `<span class="text-amber-800 font-bold bg-amber-100 px-1 rounded">(Desligado)</span>` : ''}
+                ${isMesAnterior ? `<span class="text-indigo-800 font-bold bg-indigo-50 border border-indigo-200 px-1 rounded text-[9px]">(Entrou em ${MESES[mesEntradaNum]})</span>` : ''}
               </div>
             </div>
           </div>
@@ -645,40 +820,56 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
     `;
 
     programacoes.forEach(prog => {
-      const status = regs[prog.id] || '';
-      let badgeClass = 'badge-empty';
-      let statusText = '—';
+      if (isMesAnterior) {
+        // Membro entrou após este mês: célula bloqueada, não clicável
+        bodyHtml += `
+          <td class="py-2.5 px-2 text-center border-l border-slate-200 bg-slate-50/60">
+            <div 
+              class="inline-flex items-center justify-center w-8 h-8 rounded-lg font-bold text-xs bg-slate-100 text-slate-400 border border-slate-200/80 cursor-not-allowed select-none opacity-60"
+              title="Entrou no Aprisco em ${MESES[mesEntradaNum]} de ${membro.anoEntrada || '2026'}. Não é possível alterar presenças em meses anteriores.">
+              —
+            </div>
+          </td>
+        `;
+      } else {
+        const status = regs[prog.id] || '';
+        let badgeClass = 'badge-empty';
+        let statusText = '—';
 
-      if (status === 'P') {
-        badgeClass = 'badge-p';
-        statusText = 'P';
-      } else if (status === 'FJ') {
-        badgeClass = 'badge-fj';
-        statusText = 'FJ';
-      } else if (status === 'F') {
-        badgeClass = 'badge-f';
-        statusText = 'F';
+        if (status === 'P') {
+          badgeClass = 'badge-p';
+          statusText = 'P';
+        } else if (status === 'FJ') {
+          badgeClass = 'badge-fj';
+          statusText = 'FJ';
+        } else if (status === 'F') {
+          badgeClass = 'badge-f';
+          statusText = 'F';
+        }
+
+        bodyHtml += `
+          <td class="py-2.5 px-2 text-center border-l border-slate-200">
+            <div 
+              class="attendance-cell inline-flex items-center justify-center w-8 h-8 rounded-lg font-black text-xs ${badgeClass}"
+              onclick="toggleStatusPresenca('${membro.id}', '${prog.id}')"
+              title="Clique para alternar: P -> FJ -> F -> Vazio">
+              ${statusText}
+            </div>
+          </td>
+        `;
       }
-
-      bodyHtml += `
-        <td class="py-2.5 px-2 text-center border-l border-slate-200">
-          <div 
-            class="attendance-cell inline-flex items-center justify-center w-8 h-8 rounded-lg font-black text-xs ${badgeClass}"
-            onclick="toggleStatusPresenca('${membro.id}', '${prog.id}')"
-            title="Clique para alternar: P -> FJ -> F -> Vazio">
-            ${statusText}
-          </div>
-        </td>
-      `;
     });
 
     const badgeRankClass = `rank-${classif.classKey}`;
 
     bodyHtml += `
-        <td class="py-2.5 px-3 text-center border-l-2 border-slate-300 font-black text-emerald-900 bg-emerald-50/80">${p}</td>
-        <td class="py-2.5 px-3 text-center border-l border-slate-200 font-black text-orange-900 bg-orange-50/80">${fj}</td>
-        <td class="py-2.5 px-3 text-center border-l border-slate-200 font-black text-rose-900 bg-rose-50/80">${f}</td>
-        <td class="py-2.5 px-3 text-center border-l border-slate-200 font-black text-purple-950 bg-purple-50/80 text-sm">${totalPontos.toFixed(1)}</td>
+        <td class="py-2.5 px-3 text-center border-l-2 border-slate-300 font-black text-emerald-900 bg-emerald-50/80">${isMesAnterior ? '—' : p}</td>
+        <td class="py-2.5 px-3 text-center border-l border-slate-200 font-black text-orange-900 bg-orange-50/80">${isMesAnterior ? '—' : fj}</td>
+        <td class="py-2.5 px-3 text-center border-l border-slate-200 font-black text-rose-900 bg-rose-50/80">${isMesAnterior ? '—' : f}</td>
+        <td class="py-2.5 px-3 text-center border-l border-slate-200 font-black text-purple-950 bg-purple-50/80 text-sm">
+          ${totalPontos.toFixed(1)}
+          ${isMesAnterior ? '<div class="text-[9px] text-indigo-700 font-bold leading-none mt-0.5">(50% entrada)</div>' : ''}
+        </td>
         <td class="py-2.5 px-4 text-center border-l border-slate-200">
           <span class="inline-block px-3 py-1 rounded-full text-xs font-black shadow-sm ${badgeRankClass}">
             ${classif.label}
@@ -901,6 +1092,14 @@ function renderTabelaMensal(programacoes, membrosStats, mIndex) {
 }
 
 function toggleStatusPresenca(membroId, progId) {
+  if (currentMonthIndex === 'geral') return;
+
+  const membro = appData.membros.find(m => m.id === membroId);
+  if (membro && isMesAnteriorEntrada(membro, appData.anoAtual, currentMonthIndex)) {
+    showToast(`"${membro.nome}" entrou em ${MESES[membro.mesEntrada || 0]}. Não é possível alterar frequências de meses anteriores.`, 'aviso');
+    return;
+  }
+
   const mData = getMonthData(currentMonthIndex);
   if (!mData.frequencias[membroId]) {
     mData.frequencias[membroId] = {};
@@ -921,8 +1120,11 @@ function toggleStatusPresenca(membroId, progId) {
 
 function marcarTodosPresentesData(progId) {
   const mData = getMonthData(currentMonthIndex);
-  // Marcar apenas membros participantes deste mês
-  const membrosDoMes = appData.membros.filter(m => isMembroAtivoNoMes(m, appData.anoAtual, currentMonthIndex));
+  // Marcar apenas membros ativos que já haviam entrado neste mês
+  const membrosDoMes = appData.membros.filter(m => 
+    isMembroAtivoNoMes(m, appData.anoAtual, currentMonthIndex) &&
+    !isMesAnteriorEntrada(m, appData.anoAtual, currentMonthIndex)
+  );
   membrosDoMes.forEach(m => {
     if (!mData.frequencias[m.id]) mData.frequencias[m.id] = {};
     mData.frequencias[m.id][progId] = 'P';
@@ -1070,16 +1272,23 @@ function renderGeralView() {
         // Apenas computa se o membro esteve ativo no mês m
         if (isMembroAtivoNoMes(mem, appData.anoAtual, m)) {
           membroTotais[mem.id].totalProgramacoes += qProgMes;
-          const regs = mData.frequencias ? (mData.frequencias[mem.id] || {}) : {};
-          const pts = calcularPontosPessoa(regs);
-          membroTotais[mem.id].p += pts.p;
-          membroTotais[mem.id].fj += pts.fj;
-          membroTotais[mem.id].f += pts.f;
-          membroTotais[mem.id].totalPontos += pts.totalPontos;
 
-          totalPresencasAno += pts.p;
-          totalFaltasJustAno += pts.fj;
-          totalFaltasAno += pts.f;
+          if (isMesAnteriorEntrada(mem, appData.anoAtual, m)) {
+            // Mês anterior à entrada: recebe metade dos pontos do mês (50%), sem gerar faltas
+            const pontosMesAnterior = qProgMes > 0 ? (qProgMes / 2) : 0;
+            membroTotais[mem.id].totalPontos += pontosMesAnterior;
+          } else {
+            const regs = mData.frequencias ? (mData.frequencias[mem.id] || {}) : {};
+            const pts = calcularPontosPessoa(regs);
+            membroTotais[mem.id].p += pts.p;
+            membroTotais[mem.id].fj += pts.fj;
+            membroTotais[mem.id].f += pts.f;
+            membroTotais[mem.id].totalPontos += pts.totalPontos;
+
+            totalPresencasAno += pts.p;
+            totalFaltasJustAno += pts.fj;
+            totalFaltasAno += pts.f;
+          }
         }
       });
     }
@@ -1206,7 +1415,7 @@ function renderTabelaGeral(membrosGeralStats, totalProgramacoesAno) {
             </div>
             <div>
               <span class="text-sm block font-bold text-slate-900">${membro.nome}</span>
-              <div class="flex items-center gap-1 text-[10px]">
+              <div class="flex items-center gap-1 text-[10px] flex-wrap">
                 ${membro.funcao ? `<span class="text-slate-500 font-medium">${membro.funcao}</span>` : ''}
                 ${isDesligado ? `<span class="text-amber-800 font-bold bg-amber-100 px-1 rounded">(Desligado em ${MESES[membro.mesSaida]}/${membro.anoSaida})</span>` : ''}
               </div>
@@ -1385,7 +1594,10 @@ function renderMembrosView() {
             </div>
             <div>
               <span class="${!isAtivo ? 'text-slate-400' : ''}">${membro.nome}</span>
-              ${!isAtivo ? `<span class="block text-[11px] text-amber-700 font-medium">Saída: ${MESES[membro.mesSaida]} de ${membro.anoSaida}</span>` : ''}
+              <div class="flex items-center gap-2 text-[11px] text-slate-500 font-medium flex-wrap">
+                <span>Entrada: ${MESES[membro.mesEntrada !== undefined ? membro.mesEntrada : 0]} de ${membro.anoEntrada || '2026'}</span>
+                ${!isAtivo ? `<span class="text-amber-700 font-bold">&bull; Saída: ${MESES[membro.mesSaida]} de ${membro.anoSaida}</span>` : ''}
+              </div>
             </div>
           </div>
         </td>
@@ -1434,6 +1646,12 @@ function abrirModalNovoMembro() {
   document.getElementById('formMembro').reset();
   document.getElementById('inputMembroId').value = '';
   document.getElementById('modalMembroTitle').innerHTML = '<i class="fa-solid fa-user-plus"></i> Novo Membro';
+
+  const mesSugerido = typeof currentMonthIndex === 'number' ? currentMonthIndex : 0;
+  const anoSugerido = appData.anoAtual || '2026';
+  document.getElementById('selectMesEntrada').value = String(mesSugerido);
+  document.getElementById('selectAnoEntrada').value = String(anoSugerido);
+
   openModal('modalMembro');
 }
 
@@ -1446,6 +1664,11 @@ function editarMembro(id) {
   document.getElementById('inputNascMembro').value = membro.nascimento || '';
   document.getElementById('inputFuncaoMembro').value = membro.funcao || '';
   document.getElementById('inputObsMembro').value = membro.obs || '';
+
+  const mesEntrada = membro.mesEntrada !== undefined ? membro.mesEntrada : 0;
+  const anoEntrada = membro.anoEntrada || appData.anoAtual || '2026';
+  document.getElementById('selectMesEntrada').value = String(mesEntrada);
+  document.getElementById('selectAnoEntrada').value = String(anoEntrada);
 
   document.getElementById('modalMembroTitle').innerHTML = '<i class="fa-solid fa-user-pen"></i> Editar Membro';
   openModal('modalMembro');
@@ -1537,6 +1760,8 @@ document.getElementById('formMembro').addEventListener('submit', (e) => {
   const nascimento = document.getElementById('inputNascMembro').value;
   const funcao = document.getElementById('inputFuncaoMembro').value.trim();
   const obs = document.getElementById('inputObsMembro').value.trim();
+  const mesEntrada = parseInt(document.getElementById('selectMesEntrada').value, 10);
+  const anoEntrada = document.getElementById('selectAnoEntrada').value;
 
   if (!nome) return;
 
@@ -1548,7 +1773,9 @@ document.getElementById('formMembro').addEventListener('submit', (e) => {
         nome,
         nascimento,
         funcao,
-        obs
+        obs,
+        mesEntrada: isNaN(mesEntrada) ? 0 : mesEntrada,
+        anoEntrada: anoEntrada || appData.anoAtual || '2026'
       };
       delete appData.membros[index].telefone;
       showToast('Dados do membro atualizados!');
@@ -1561,6 +1788,8 @@ document.getElementById('formMembro').addEventListener('submit', (e) => {
       nascimento,
       funcao,
       obs,
+      mesEntrada: isNaN(mesEntrada) ? 0 : mesEntrada,
+      anoEntrada: anoEntrada || appData.anoAtual || '2026',
       ativo: true,
       createdAt: Date.now()
     });
@@ -1659,7 +1888,10 @@ document.getElementById('btnFastFillPresent').addEventListener('click', () => {
     return;
   }
 
-  const membrosDoMes = appData.membros.filter(m => isMembroAtivoNoMes(m, appData.anoAtual, currentMonthIndex));
+  const membrosDoMes = appData.membros.filter(m => 
+    isMembroAtivoNoMes(m, appData.anoAtual, currentMonthIndex) &&
+    !isMesAnteriorEntrada(m, appData.anoAtual, currentMonthIndex)
+  );
 
   if (confirm(`Deseja marcar TODOS os ${membrosDoMes.length} membros ativos como PRESENTES em TODAS as datas deste mês?`)) {
     mData.programacoes.forEach(prog => {
@@ -1866,5 +2098,6 @@ function showToast(mensagem, tipo = 'sucesso') {
 window.addEventListener('DOMContentLoaded', () => {
   aplicarIconeAba();
   loadState();
+  initFirebase();
   renderApp();
 });
